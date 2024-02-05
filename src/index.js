@@ -12,8 +12,7 @@
 
 import wrap from '@adobe/helix-shared-wrap';
 import { helixStatus } from '@adobe/helix-status';
-import { sqsEventAdapter, resolveSecretsName } from '@adobe/spacecat-shared-utils';
-import { secrets } from '@adobe/helix-shared-secrets';
+import { sqsEventAdapter } from '@adobe/spacecat-shared-utils';
 import { noContent } from '@adobe/spacecat-shared-http-utils';
 
 async function run(message, context) {
@@ -28,5 +27,4 @@ async function run(message, context) {
 
 export const main = wrap(run)
   .with(sqsEventAdapter)
-  .with(secrets, { name: resolveSecretsName })
   .with(helixStatus);
