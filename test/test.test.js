@@ -13,6 +13,7 @@
 /* eslint-env mocha */
 
 import chai from 'chai';
+
 const { expect } = chai;
 
 describe('Index Tests', () => {

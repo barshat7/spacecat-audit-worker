@@ -14,7 +14,7 @@ import wrap from '@adobe/helix-shared-wrap';
 import { helixStatus } from '@adobe/helix-status';
 import { sqsEventAdapter, resolveSecretsName } from '@adobe/spacecat-shared-utils';
 import { secrets } from '@adobe/helix-shared-secrets';
-import {badRequest, noContent} from '@adobe/spacecat-shared-http-utils';
+import { noContent } from '@adobe/spacecat-shared-http-utils';
 
 async function run(message, context) {
   const { log } = context;
@@ -24,7 +24,6 @@ async function run(message, context) {
   // TODO: scrape content
 
   return noContent();
-
 }
 
 export const main = wrap(run)
