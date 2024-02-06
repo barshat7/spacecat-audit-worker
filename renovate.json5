@@ -1,0 +1,20 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": [
+    "local>adobe-rnd/spacecat-content-scraper"
+  ],
+  "packageRules": [
+    {
+      "matchPackageNames": [
+        "semantic-release"
+      ],
+      "allowedVersions": ">=23.0"
+    },
+    {
+      "matchPackageNames": [
+        "chai"
+      ],
+      "allowedVersions": "<5.0.0"
+    }
+  ]
+}
