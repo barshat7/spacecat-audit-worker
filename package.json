@@ -19,6 +19,20 @@
     "deploy-secrets": "hedy --aws-update-secrets --params-file=secrets/secrets.env",
     "prepare": "husky install"
   },
+  "wsk": {
+    "target": "aws",
+    "name": "spacecat-services/content-scraper@${version}",
+    "memory": 4096,
+    "awsRole!important": "arn:aws:iam::282898975672:role/spacecat-role-services",
+    "testUrl": "/_status_check/healthcheck.json",
+    "awsAttachAuthorizer": "",
+    "dev": {
+      "params-file": "secrets/dev-secrets.json"
+    },
+    "fastlyServiceId!important": "",
+    "timeout": 900000,
+    "nodeVersion": 20
+  },
   "repository": {
     "type": "git",
     "url": "https://github.com/adobe/spacecat-content-scraper"
