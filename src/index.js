@@ -18,7 +18,7 @@ import { noContent } from '@adobe/spacecat-shared-http-utils';
 async function run(message, context) {
   const { log } = context;
 
-  log.info('Content Scraper Triggered');
+  log.info('Content Scraper Triggered with Layer');
 
   // TODO: scrape content
 
