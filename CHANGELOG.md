@@ -1,3 +1,10 @@
+## [1.0.3](https://github.com/adobe/spacecat-content-scraper/compare/v1.0.2...v1.0.3) (2024-02-07)
+
+
+### Bug Fixes
+
+* layer log ([#11](https://github.com/adobe/spacecat-content-scraper/issues/11)) ([95511dd](https://github.com/adobe/spacecat-content-scraper/commit/95511dd19b20491855d0da5265aafe0f79b31f4f))
+
 ## [1.0.2](https://github.com/adobe/spacecat-content-scraper/compare/v1.0.1...v1.0.2) (2024-02-07)
 
 
