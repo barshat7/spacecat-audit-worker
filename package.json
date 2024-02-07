@@ -22,6 +22,7 @@
   "wsk": {
     "target": "aws",
     "name": "spacecat-services/content-scraper@${version}",
+    "layers": "arn:aws:lambda:us-east-1:282898975672:layer:chromium-v121:1",
     "memory": 4096,
     "awsRole!important": "arn:aws:iam::282898975672:role/spacecat-role-services",
     "testUrl": "/_status_check/healthcheck.json",
