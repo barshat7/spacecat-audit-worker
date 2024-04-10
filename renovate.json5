@@ -1,7 +1,7 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
   "extends": [
-    "local>adobe-rnd/spacecat-content-scraper"
+    "local>adobe/spacecat-content-scraper"
   ],
   "packageRules": [
     {
