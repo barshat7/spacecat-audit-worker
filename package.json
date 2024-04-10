@@ -22,7 +22,12 @@
   "wsk": {
     "target": "aws",
     "name": "spacecat-services/content-scraper@${version}",
-    "layers": "arn:aws:lambda:us-east-1:282898975672:layer:chromium-v121:1",
+    "externals": [
+      "@spa@sparticuz/chromium"
+    ],
+    "layers": [
+      "arn:aws:lambda:us-east-1:764866452798:layer:chrome-aws-lambda:42"
+    ],
     "memory": 4096,
     "awsRole!important": "arn:aws:iam::282898975672:role/spacecat-role-services",
     "testUrl": "/_status_check/healthcheck.json",
@@ -32,7 +37,10 @@
     },
     "fastlyServiceId!important": "",
     "timeout": 900000,
-    "nodeVersion": 20
+    "nodeVersion": 20,
+    "static": [
+      "static/prompts/sections.prompt"
+    ]
   },
   "repository": {
     "type": "git",
@@ -54,13 +62,15 @@
     "@semantic-release/exec": "6.0.3",
     "@semantic-release/git": "10.0.1",
     "@semantic-release/npm": "11.0.2",
+    "@sparticuz/chromium": "121.0.0",
     "c8": "9.1.0",
     "chai": "4.4.1",
     "dotenv": "16.4.2",
     "eslint": "8.56.0",
     "husky": "9.0.10",
     "mocha": "10.2.0",
-    "nodemon": "3.0.3"
+    "nodemon": "3.0.3",
+    "sinon": "17.0.1"
   },
   "lint-staged": {
     "*.js": "eslint",
@@ -71,8 +81,11 @@
     "@adobe/helix-shared-wrap": "2.0.1",
     "@adobe/helix-status": "10.0.11",
     "@adobe/helix-universal-logger": "3.0.13",
+    "@adobe/spacecat-shared-gpt-client": "1.1.1",
     "@adobe/spacecat-shared-http-utils": "1.1.3",
+    "@adobe/spacecat-shared-slack-client": "1.1.2",
     "@adobe/spacecat-shared-utils": "1.11.1",
-    "puppeteer-core": "21.11.0"
+    "puppeteer-core": "21.11.0",
+    "typescript": "5.3.3"
   }
 }
