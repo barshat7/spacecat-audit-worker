@@ -1,3 +1,10 @@
+# [1.2.0](https://github.com/adobe/spacecat-content-scraper/compare/v1.1.2...v1.2.0) (2024-04-12)
+
+
+### Features
+
+* scrape and store ([#27](https://github.com/adobe/spacecat-content-scraper/issues/27)) ([fd41855](https://github.com/adobe/spacecat-content-scraper/commit/fd418556b73d35b700c4702e439f865308024f0e))
+
 ## [1.1.2](https://github.com/adobe/spacecat-content-scraper/compare/v1.1.1...v1.1.2) (2024-04-12)
 
 
