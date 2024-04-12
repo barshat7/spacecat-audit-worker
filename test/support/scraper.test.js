@@ -13,11 +13,14 @@
 /* eslint-env mocha */
 
 import chai from 'chai';
+// import { scrape } from '../../support/scrape.js';
 
 const { expect } = chai;
 
 describe('Index Tests', () => {
-  it('should pass', () => {
+  it('should pass', async () => {
+    // const result = await scrape('https://mammotome.com/us/en/', console, false);
+
     expect(true).to.equal(true);
   });
 });

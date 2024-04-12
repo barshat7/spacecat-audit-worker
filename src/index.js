@@ -13,12 +13,10 @@
 import wrap from '@adobe/helix-shared-wrap';
 import secrets from '@adobe/helix-shared-secrets';
 import { helixStatus } from '@adobe/helix-status';
-import { FirefallClient } from '@adobe/spacecat-shared-gpt-client';
 import { internalServerError, noContent } from '@adobe/spacecat-shared-http-utils';
-import { BaseSlackClient, SLACK_TARGETS } from '@adobe/spacecat-shared-slack-client';
 import { sqsEventAdapter, resolveSecretsName, sqsWrapper } from '@adobe/spacecat-shared-utils';
 
-import scrapeURL from './scraper/handler.js';
+import scapeAndStore from './handlers/scrape-and-store.js';
 
 async function run(message, context) {
   const { log, sqs } = context;
@@ -27,27 +25,19 @@ async function run(message, context) {
     SCRAPING_JOBS_QUEUE_URL: queueUrl,
   } = context.env;
 
-  const firefallClient = FirefallClient.createFrom(context);
-  const slackClient = BaseSlackClient.createFrom(context, SLACK_TARGETS.WORKSPACE_INTERNAL);
-
-  log.info(`Content Scraper received a message. Scraping URL: ${JSON.stringify(message)}`);
+  log.info(`Received a message. Scraping URL: ${JSON.stringify(message)}`);
 
   try {
-    const result = await scrapeURL(url, firefallClient, slackClient, log);
-
-    log.info(`Firefall Result: ${result}`);
+    const scraperResult = await scapeAndStore(url, context);
 
     await sqs.sendMessage(queueUrl, {
-      scraperResult: result,
+      url,
+      scraperResult,
     });
 
     return noContent();
   } catch (e) {
     log.error(`Error scraping URL: ${e}`);
-    await slackClient.postMessage({
-      channel: 'C06HUH04FJ6',
-      text: `:alert: Error scraping URL: ${e}`,
-    });
     return internalServerError(e.message);
   }
 }
