@@ -79,7 +79,7 @@
     "@adobe/helix-status": "10.0.12",
     "@adobe/helix-universal-logger": "3.0.15",
     "@adobe/spacecat-shared-http-utils": "1.1.4",
-    "@adobe/spacecat-shared-utils": "1.14.3",
+    "@adobe/spacecat-shared-utils": "1.14.5",
     "@aws-sdk/client-s3": "3.554.0",
     "puppeteer-core": "21.11.0",
     "typescript": "5.4.5"
