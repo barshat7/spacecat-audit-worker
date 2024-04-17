@@ -74,8 +74,8 @@
     "*.cjs": "eslint"
   },
   "dependencies": {
-    "@adobe/helix-shared-secrets": "2.2.5",
-    "@adobe/helix-shared-wrap": "2.0.1",
+    "@adobe/helix-shared-secrets": "2.2.6",
+    "@adobe/helix-shared-wrap": "2.0.2",
     "@adobe/helix-status": "10.0.12",
     "@adobe/helix-universal-logger": "3.0.15",
     "@adobe/spacecat-shared-http-utils": "1.1.4",
