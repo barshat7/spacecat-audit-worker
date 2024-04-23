@@ -1,3 +1,10 @@
+## [1.2.5](https://github.com/adobe/spacecat-content-scraper/compare/v1.2.4...v1.2.5) (2024-04-23)
+
+
+### Bug Fixes
+
+* npm audit ([d1562e8](https://github.com/adobe/spacecat-content-scraper/commit/d1562e8be8cbd41bad218f6a20871047bfbab3d7))
+
 ## [1.2.4](https://github.com/adobe/spacecat-content-scraper/compare/v1.2.3...v1.2.4) (2024-04-20)
 
 
