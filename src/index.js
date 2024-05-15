@@ -14,26 +14,63 @@ import wrap from '@adobe/helix-shared-wrap';
 import secrets from '@adobe/helix-shared-secrets';
 import { helixStatus } from '@adobe/helix-status';
 import { internalServerError, noContent } from '@adobe/spacecat-shared-http-utils';
-import { sqsEventAdapter, resolveSecretsName, sqsWrapper } from '@adobe/spacecat-shared-utils';
+import {
+  sqsEventAdapter,
+  resolveSecretsName,
+  sqsWrapper,
+  isValidUrl, hasText,
+} from '@adobe/spacecat-shared-utils';
+import { BaseSlackClient, SLACK_TARGETS } from '@adobe/spacecat-shared-slack-client';
+import { v4 as uuidv4 } from 'uuid';
 
 import scapeAndStore from './handlers/scrape-and-store.js';
 
 async function run(message, context) {
   const { log, sqs } = context;
-  const { url } = message;
+  const {
+    url,
+    jobId = uuidv4(),
+    slackContext,
+    processingType,
+  } = message;
   const {
     SCRAPING_JOBS_QUEUE_URL: queueUrl,
   } = context.env;
 
+  if (!isValidUrl(url)) {
+    log.error(`Missing required parameters: ${JSON.stringify(message)}`);
+    return noContent();
+  }
+
   log.info(`Received a message. Scraping URL: ${JSON.stringify(message)}`);
 
   try {
-    const scraperResult = await scapeAndStore(url, context);
+    const scraperResult = await scapeAndStore(url, jobId, context);
 
-    await sqs.sendMessage(queueUrl, {
+    const completedMessage = {
       url,
+      jobId,
+      processingType,
+      slackContext,
       scraperResult,
-    });
+    };
+
+    const { threadTs, channelId } = slackContext;
+    if (hasText(threadTs) && hasText(channelId)) {
+      const slackClient = BaseSlackClient.createFrom(
+        context,
+        SLACK_TARGETS.WORKSPACE_INTERNAL,
+      );
+      await slackClient.postMessage({
+        channel: channelId,
+        thread_ts: threadTs,
+        text: `Scraped URL and stored DOM for ${url}...`,
+      });
+    }
+
+    await sqs.sendMessage(queueUrl, completedMessage);
+
+    log.info(`Scraping completed. Message sent: ${JSON.stringify(completedMessage)}`);
 
     return noContent();
   } catch (e) {

@@ -14,15 +14,8 @@ import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
 
 import { scrape } from '../../support/scrape.js';
 
-function createFilePath(url) {
-  const date = new Date();
-  const dateFolder = date.toISOString().split('T')[0];
-  const path = `${encodeURIComponent(url.replace(/^(https?:\/\/)/, ''))}`;
-  return `scrapes/${dateFolder}/${path}/scrape.json`;
-}
-
-const store = async (url, content, s3Client, s3BucketName, log) => {
-  const filePath = createFilePath(url);
+const store = async (url, jobId, content, s3Client, s3BucketName, log) => {
+  const filePath = `scrapes/${jobId}/scrape.json`;
 
   const command = new PutObjectCommand({
     Bucket: s3BucketName,
@@ -37,7 +30,7 @@ const store = async (url, content, s3Client, s3BucketName, log) => {
   return filePath;
 };
 
-const scrapeAndStore = async (finalUrl, context) => {
+const scrapeAndStore = async (finalUrl, jobId, context) => {
   const { log } = context;
 
   const s3Client = new S3Client();
@@ -52,7 +45,14 @@ const scrapeAndStore = async (finalUrl, context) => {
       finalUrl,
     };
 
-    const result = await store(finalUrl, scrapeResult, s3Client, process.env.S3_BUCKET_NAME, log);
+    const result = await store(
+      finalUrl,
+      jobId,
+      scrapeResult,
+      s3Client,
+      process.env.S3_BUCKET_NAME,
+      log,
+    );
 
     return { s3Key: result };
   } catch (error) {
