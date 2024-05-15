@@ -1,3 +1,10 @@
+# [1.3.0](https://github.com/adobe/spacecat-content-scraper/compare/v1.2.11...v1.3.0) (2024-05-15)
+
+
+### Features
+
+* jobs / threadIds ([#50](https://github.com/adobe/spacecat-content-scraper/issues/50)) ([69200af](https://github.com/adobe/spacecat-content-scraper/commit/69200affa92d2a26ab74f2ac259efc984aabff64))
+
 ## [1.2.11](https://github.com/adobe/spacecat-content-scraper/compare/v1.2.10...v1.2.11) (2024-05-15)
 
 
