@@ -1,3 +1,10 @@
+## [1.3.1](https://github.com/adobe/spacecat-content-scraper/compare/v1.3.0...v1.3.1) (2024-05-17)
+
+
+### Bug Fixes
+
+* unfurl ([#51](https://github.com/adobe/spacecat-content-scraper/issues/51)) ([90aeddd](https://github.com/adobe/spacecat-content-scraper/commit/90aeddde520c514e9bf9e9ef208287bc1d72a3d3))
+
 # [1.3.0](https://github.com/adobe/spacecat-content-scraper/compare/v1.2.11...v1.3.0) (2024-05-15)
 
 
