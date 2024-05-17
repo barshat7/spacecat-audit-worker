@@ -65,6 +65,7 @@ async function run(message, context) {
         channel: channelId,
         thread_ts: threadTs,
         text: `Scraped URL and stored DOM for ${url}...`,
+        unfurl_links: false,
       });
     }
 
