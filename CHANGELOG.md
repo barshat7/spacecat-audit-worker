@@ -1,3 +1,10 @@
+## [1.3.2](https://github.com/adobe/spacecat-content-scraper/compare/v1.3.1...v1.3.2) (2024-05-18)
+
+
+### Bug Fixes
+
+* **deps:** update dependency @aws-sdk/client-s3 to v3.577.0 ([#53](https://github.com/adobe/spacecat-content-scraper/issues/53)) ([35c52c3](https://github.com/adobe/spacecat-content-scraper/commit/35c52c35865265f58147af27622437fcd51a22d9))
+
 ## [1.3.1](https://github.com/adobe/spacecat-content-scraper/compare/v1.3.0...v1.3.1) (2024-05-17)
 
 
