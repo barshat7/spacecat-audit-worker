@@ -64,7 +64,7 @@ async function run(message, context) {
       await slackClient.postMessage({
         channel: channelId,
         thread_ts: threadTs,
-        text: `Scraped URL and stored DOM for ${url}...`,
+        text: `Scraped URL and stored DOM for ${url} (Job: \`${jobId}\`)...`,
         unfurl_links: false,
       });
     }

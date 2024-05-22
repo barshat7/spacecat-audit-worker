@@ -20,11 +20,19 @@ const iPhone13Pro = KnownDevices['iPhone 13 Pro'];
 async function evalFn() {
   /* eslint-disable no-undef */
 
+  await new Promise((resolve) => {
+    setTimeout(resolve, 2000);
+  });
+
   const rawBody = document.body.innerHTML;
 
   const mainDiv = document.querySelector('main');
   if (!mainDiv) {
-    return 'No main div found';
+    return {
+      error: 'No main div found in the document.',
+      rawBody,
+      textContent: '',
+    };
   }
 
   const elementsToRemove = mainDiv.querySelectorAll('picture, svg, img, object, video, embed, iframe, audio, frame, script, link, meta, style');
@@ -78,8 +86,7 @@ export async function scrape(url, log, useMobileDevice = true) {
   }
 
   await page.goto(url, {
-    // Wait until the HTML is ready
-    waitUntil: 'domcontentloaded',
+    waitUntil: 'load',
   });
 
   log.info(`Page Loaded: ${url}`);
