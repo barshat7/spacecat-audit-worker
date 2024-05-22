@@ -1,3 +1,10 @@
+## [1.3.3](https://github.com/adobe/spacecat-content-scraper/compare/v1.3.2...v1.3.3) (2024-05-22)
+
+
+### Bug Fixes
+
+* add job id to message ([#52](https://github.com/adobe/spacecat-content-scraper/issues/52)) ([8f0fef1](https://github.com/adobe/spacecat-content-scraper/commit/8f0fef1271689270781b8d2a88cd2bff6f7bea56))
+
 ## [1.3.2](https://github.com/adobe/spacecat-content-scraper/compare/v1.3.1...v1.3.2) (2024-05-18)
 
 
