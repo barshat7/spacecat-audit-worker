@@ -1,3 +1,10 @@
+# [1.4.0](https://github.com/adobe/spacecat-content-scraper/compare/v1.3.4...v1.4.0) (2024-05-24)
+
+
+### Features
+
+* stealth & body scrape ([#57](https://github.com/adobe/spacecat-content-scraper/issues/57)) ([16f05c8](https://github.com/adobe/spacecat-content-scraper/commit/16f05c82affdbb9384cd07a97137283692b10c29))
+
 ## [1.3.4](https://github.com/adobe/spacecat-content-scraper/compare/v1.3.3...v1.3.4) (2024-05-22)
 
 
