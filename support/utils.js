@@ -10,43 +10,33 @@
  * governing permissions and limitations under the License.
  */
 
-import { promises as fs } from 'fs';
+import { hasText } from '@adobe/spacecat-shared-utils';
+import { BaseSlackClient, SLACK_TARGETS } from '@adobe/spacecat-shared-slack-client';
 
-const PROMPT_FILENAME = './static/prompts/sections.prompt';
+let slackClient = null;
 
 /**
- * Replaces placeholders in the prompt content with their corresponding values.
+ * Send a message to a Slack channel. If the message is a reply, it will be sent as a thread.
  *
- * @param {string} content - The prompt content with placeholders.
- * @param {Object} placeholders - The placeholders and their values.
- * @returns {string} - The content with placeholders replaced.
+ * @param contex {UniversalContext} - The context object.
+ * @param slackContext {object} - The Slack context object.
+ * @param message {string} - The message to send.
+ * @return {Promise<void>} - A promise that resolves when the message is sent.
  */
-function replacePlaceholders(content, placeholders) {
-  return content.replace(/{{(.*?)}}/g, (match, key) => {
-    if (key in placeholders) {
-      const value = placeholders[key];
-      return typeof value === 'object' && value !== null ? JSON.stringify(value) : value;
-    } else {
-      return match;
+export async function sendSlackMessage(context, slackContext, message) {
+  const { threadTs, channelId } = slackContext;
+  if (hasText(threadTs) && hasText(channelId)) {
+    if (!slackClient) {
+      slackClient = BaseSlackClient.createFrom(
+        context,
+        SLACK_TARGETS.WORKSPACE_INTERNAL,
+      );
     }
-  });
-}
-
-/**
- * Reads the content of a prompt file asynchronously and replaces any placeholders
- * with the corresponding values. Logs the error and returns null in case of an error.
- *
- * @param {Object} placeholders - A JSON object containing values to replace in the prompt content.
- * @param {Object} log - The logger
- * @returns {Promise<string|null>} - A promise that resolves to a string with the prompt content,
- * or null if an error occurs.
- */
-export async function getPrompt(placeholders, log = console) {
-  try {
-    const promptContent = await fs.readFile(PROMPT_FILENAME, { encoding: 'utf8' });
-    return replacePlaceholders(promptContent, placeholders);
-  } catch (error) {
-    log.error('Error reading prompt file:', error.message);
-    return null;
+    await slackClient.postMessage({
+      channel: channelId,
+      thread_ts: threadTs,
+      text: message,
+      unfurl_links: false,
+    });
   }
 }

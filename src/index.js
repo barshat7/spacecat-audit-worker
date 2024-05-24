@@ -18,19 +18,20 @@ import {
   sqsEventAdapter,
   resolveSecretsName,
   sqsWrapper,
-  isValidUrl, hasText,
+  isValidUrl,
 } from '@adobe/spacecat-shared-utils';
-import { BaseSlackClient, SLACK_TARGETS } from '@adobe/spacecat-shared-slack-client';
+
 import { v4 as uuidv4 } from 'uuid';
 
 import scapeAndStore from './handlers/scrape-and-store.js';
+import { sendSlackMessage } from '../support/utils.js';
 
 async function run(message, context) {
   const { log, sqs } = context;
   const {
     url,
     jobId = uuidv4(),
-    slackContext,
+    slackContext = {},
     processingType,
   } = message;
   const {
@@ -45,7 +46,7 @@ async function run(message, context) {
   log.info(`Received a message. Scraping URL: ${JSON.stringify(message)}`);
 
   try {
-    const scraperResult = await scapeAndStore(url, jobId, context);
+    const scraperResult = await scapeAndStore(url, jobId, context, slackContext);
 
     const completedMessage = {
       url,
@@ -55,19 +56,7 @@ async function run(message, context) {
       scraperResult,
     };
 
-    const { threadTs, channelId } = slackContext;
-    if (hasText(threadTs) && hasText(channelId)) {
-      const slackClient = BaseSlackClient.createFrom(
-        context,
-        SLACK_TARGETS.WORKSPACE_INTERNAL,
-      );
-      await slackClient.postMessage({
-        channel: channelId,
-        thread_ts: threadTs,
-        text: `Scraped URL and stored DOM for ${url} (Job: \`${jobId}\`)...`,
-        unfurl_links: false,
-      });
-    }
+    await sendSlackMessage(context, slackContext, `Scraped URL and stored DOM for ${url} (Job: \`${jobId}\`)...`);
 
     await sqs.sendMessage(queueUrl, completedMessage);
 

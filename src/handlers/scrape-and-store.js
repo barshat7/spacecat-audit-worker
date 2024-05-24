@@ -13,6 +13,7 @@
 import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
 
 import { scrape } from '../../support/scrape.js';
+import { sendSlackMessage } from '../../support/utils.js';
 
 const store = async (url, jobId, content, s3Client, s3BucketName, log) => {
   const filePath = `scrapes/${jobId}/scrape.json`;
@@ -30,7 +31,7 @@ const store = async (url, jobId, content, s3Client, s3BucketName, log) => {
   return filePath;
 };
 
-const scrapeAndStore = async (finalUrl, jobId, context) => {
+const scrapeAndStore = async (finalUrl, jobId, context, slackContext) => {
   const { log } = context;
 
   const s3Client = new S3Client();
@@ -57,6 +58,7 @@ const scrapeAndStore = async (finalUrl, jobId, context) => {
     return { s3Key: result };
   } catch (error) {
     log.error(`Failed to scrape. Error: ${error}`, error);
+    await sendSlackMessage(context, slackContext, `Failed to scrape with error: ${error}`);
     throw error;
   }
 };

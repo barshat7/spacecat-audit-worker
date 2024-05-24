@@ -13,49 +13,73 @@
 // This dependency is provided via AWS layers as an external (see package.json wsk config)
 // eslint-disable-next-line import/no-extraneous-dependencies
 import chromium from '@sparticuz/chromium';
-import puppeteer, { KnownDevices } from 'puppeteer-core';
+
+/**
+ * The following dependencies are provided via AWS layers as externals
+ * (see package.json wsk config).
+ * Therefore, we have eslint ignore these dependencies.
+ */
+// eslint-disable-next-line import/no-extraneous-dependencies
+import { KnownDevices } from 'puppeteer-core';
+// eslint-disable-next-line import/no-extraneous-dependencies
+import puppeteer from 'puppeteer-extra';
+// eslint-disable-next-line import/no-extraneous-dependencies
+import StealthPlugin from 'puppeteer-extra-plugin-stealth';
+// eslint-disable-next-line import/no-extraneous-dependencies
+import AdblockerPlugin from 'puppeteer-extra-plugin-adblocker';
+
+puppeteer.use(StealthPlugin());
+puppeteer.use(AdblockerPlugin({ blockTrackers: true }));
 
 const iPhone13Pro = KnownDevices['iPhone 13 Pro'];
 
 async function evalFn() {
   /* eslint-disable no-undef */
+  const { body } = document;
 
-  await new Promise((resolve) => {
-    setTimeout(resolve, 2000);
-  });
+  try {
+    if (!body) {
+      throw new Error('No body element found');
+    }
 
-  const rawBody = document.body.innerHTML;
+    const elementsToRemove = body.querySelectorAll('picture, svg, img, object, video, embed, iframe, audio, frame, script, link, meta, style');
+    elementsToRemove.forEach((el) => el.remove());
 
-  const mainDiv = document.querySelector('main');
-  if (!mainDiv) {
+    const rawBody = body.innerHTML;
+
+    if (!rawBody) {
+      throw new Error('No innerHTML found in body element');
+    }
+
+    let textContent = body.textContent || '';
+
+    // Remove all whitespace (convert multiple spaces to one space)
+    textContent = textContent.replace(/\s+/g, ' ');
+
+    // Remove all leading and trailing whitespace from each line
+    textContent = textContent.split('\n')
+      .map((line) => line.trim())
+      .join('\n');
+
+    // Remove all empty lines
+    textContent = textContent.split('\n')
+      .filter((line) => line)
+      .join('\n');
+
+    // Replace all non-ascii spaces with regular spaces
+    textContent = textContent.replace(/[^\u0020-\u007E]/g, ' ');
+
     return {
-      error: 'No main div found in the document.',
       rawBody,
+      textContent,
+    };
+  } catch (e) {
+    return {
+      error: e.message,
+      rawBody: '',
       textContent: '',
     };
   }
-
-  const elementsToRemove = mainDiv.querySelectorAll('picture, svg, img, object, video, embed, iframe, audio, frame, script, link, meta, style');
-  elementsToRemove.forEach((el) => el.remove());
-
-  let textContent = mainDiv.textContent || '';
-
-  // Remove all whitespace (convert multiple spaces to one space)
-  textContent = textContent.replace(/\s+/g, ' ');
-
-  // Remove all leading and trailing whitespace from each line
-  textContent = textContent.split('\n').map((line) => line.trim()).join('\n');
-
-  // Remove all empty lines
-  textContent = textContent.split('\n').filter((line) => line).join('\n');
-
-  // Replace all non-ascii spaces with regular spaces
-  textContent = textContent.replace(/[^\u0020-\u007E]/g, ' ');
-
-  return {
-    rawBody,
-    textContent,
-  };
 }
 
 export async function scrape(url, log, useMobileDevice = true) {
@@ -63,11 +87,11 @@ export async function scrape(url, log, useMobileDevice = true) {
 
   const isLocal = process.env.AWS_EXECUTION_ENV === undefined;
   const options = isLocal ? {
-    args: undefined,
+    args: chromium.args,
     defaultViewport: chromium.defaultViewport,
     // install with: brew install chromium --no-quarantine
     executablePath: '/opt/homebrew/bin/chromium',
-    headless: false,
+    headless: true,
   } : {
     args: chromium.args,
     defaultViewport: chromium.defaultViewport,
@@ -86,8 +110,10 @@ export async function scrape(url, log, useMobileDevice = true) {
   }
 
   await page.goto(url, {
-    waitUntil: 'load',
+    waitUntil: 'networkidle2',
   });
+
+  await page.waitForSelector('body', { timeout: 60000 });
 
   log.info(`Page Loaded: ${url}`);
 

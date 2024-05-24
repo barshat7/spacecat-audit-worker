@@ -13,6 +13,7 @@
     "semantic-release": "semantic-release",
     "semantic-release-dry": "semantic-release --dry-run --no-ci --branches $CIRCLE_BRANCH",
     "build": "hedy -v --test-bundle",
+    "build:layer": "cd layers/puppeteer/nodejs && npm install && cd .. && zip -r ../../dist/spacecat-layer-puppeteer.zip nodejs",
     "deploy": "hedy -v --deploy --test",
     "deploy-routes": "hedy --no-build -no-hints -l major",
     "deploy-ci": "hedy -v --deploy --test --pkgVersion=ci$CIRCLE_BUILD_NUM -l ci --cleanup-ci=24h",
@@ -23,10 +24,15 @@
     "target": "aws",
     "name": "spacecat-services/content-scraper@${version}",
     "externals": [
-      "@spa@sparticuz/chromium"
+      "@spa@sparticuz/chromium",
+      "puppeteer-core",
+      "puppeteer-extra",
+      "puppeteer-extra-plugin-stealth",
+      "puppeteer-extra-plugin-adblocker"
     ],
     "layers": [
-      "arn:aws:lambda:us-east-1:764866452798:layer:chrome-aws-lambda:42"
+      "arn:aws:lambda:us-east-1:282898975672:layer:spacecat-chrome-aws-lambda:1",
+      "arn:aws:lambda:us-east-1:282898975672:layer:spacecat-puppeteer:2"
     ],
     "memory": 4096,
     "awsRole!important": "arn:aws:iam::282898975672:role/spacecat-role-services",
@@ -67,6 +73,10 @@
     "husky": "9.0.11",
     "mocha": "10.4.0",
     "nodemon": "3.1.0",
+    "puppeteer-core": "22.6.4",
+    "puppeteer-extra": "3.3.6",
+    "puppeteer-extra-plugin-adblocker": "2.13.6",
+    "puppeteer-extra-plugin-stealth": "2.11.2",
     "sinon": "17.0.2"
   },
   "lint-staged": {
@@ -82,7 +92,6 @@
     "@adobe/spacecat-shared-slack-client": "1.3.5",
     "@adobe/spacecat-shared-utils": "1.15.2",
     "@aws-sdk/client-s3": "3.577.0",
-    "puppeteer-core": "21.11.0",
     "typescript": "5.4.5",
     "uuid": "^9.0.1"
   }
