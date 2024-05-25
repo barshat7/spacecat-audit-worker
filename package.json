@@ -60,7 +60,7 @@
     "@adobe/helix-universal": "4.5.2",
     "@adobe/semantic-release-coralogix": "1.1.28",
     "@adobe/semantic-release-skms-cmr": "1.0.15",
-    "@redocly/cli": "1.12.2",
+    "@redocly/cli": "1.13.0",
     "@semantic-release/changelog": "6.0.3",
     "@semantic-release/exec": "6.0.3",
     "@semantic-release/git": "10.0.1",
@@ -72,8 +72,8 @@
     "eslint": "8.57.0",
     "husky": "9.0.11",
     "mocha": "10.4.0",
-    "nodemon": "3.1.0",
-    "puppeteer-core": "22.6.4",
+    "nodemon": "3.1.1",
+    "puppeteer-core": "22.10.0",
     "puppeteer-extra": "3.3.6",
     "puppeteer-extra-plugin-adblocker": "2.13.6",
     "puppeteer-extra-plugin-stealth": "2.11.2",
@@ -91,7 +91,7 @@
     "@adobe/spacecat-shared-http-utils": "1.3.0",
     "@adobe/spacecat-shared-slack-client": "1.3.5",
     "@adobe/spacecat-shared-utils": "1.15.2",
-    "@aws-sdk/client-s3": "3.577.0",
+    "@aws-sdk/client-s3": "3.583.0",
     "typescript": "5.4.5",
     "uuid": "^9.0.1"
   }
