@@ -13,6 +13,7 @@
 module.exports = {
   root: true,
   extends: '@adobe/helix',
+  ignorePatterns: ['static/**'],
   overrides: [
     {
       files: ['*.test.js'],

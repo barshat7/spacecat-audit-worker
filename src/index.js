@@ -15,53 +15,103 @@ import secrets from '@adobe/helix-shared-secrets';
 import { helixStatus } from '@adobe/helix-status';
 import { internalServerError, noContent } from '@adobe/spacecat-shared-http-utils';
 import {
-  sqsEventAdapter,
+  hasText,
+  isObject,
   resolveSecretsName,
+  sqsEventAdapter,
   sqsWrapper,
-  isValidUrl,
 } from '@adobe/spacecat-shared-utils';
 
 import { v4 as uuidv4 } from 'uuid';
 
-import scapeAndStore from './handlers/scrape-and-store.js';
-import { sendSlackMessage } from '../support/utils.js';
+import { S3Client } from '@aws-sdk/client-s3';
+import { BaseSlackClient, SLACK_TARGETS } from '@adobe/spacecat-shared-slack-client';
+
+import ExperimentationCandidatesDesktopHandler
+  from './handlers/experimentation-candidates-desktop-handler.js';
+import ExperimentationCandidatesMobileHandler
+  from './handlers/experimentation-candidates-mobile-handler.js';
+
+const handlers = [
+  ExperimentationCandidatesDesktopHandler,
+  ExperimentationCandidatesMobileHandler,
+];
+
+const validateInput = (processingType, urls) => {
+  if (!hasText(processingType)) {
+    throw new Error('Missing processingType');
+  }
+  if (!Array.isArray(urls) || urls.length === 0) {
+    throw new Error('Missing URLs');
+  }
+};
 
 async function run(message, context) {
-  const { log, sqs } = context;
+  const { log, sqs: sqsClient } = context;
   const {
-    url,
     jobId = uuidv4(),
-    slackContext = {},
+    options = {},
     processingType,
+    slackContext = {},
+    urls,
   } = message;
-  const {
-    SCRAPING_JOBS_QUEUE_URL: queueUrl,
-  } = context.env;
 
-  if (!isValidUrl(url)) {
-    log.error(`Missing required parameters: ${JSON.stringify(message)}`);
-    return noContent();
-  }
+  validateInput(processingType, urls);
 
-  log.info(`Received a message. Scraping URL: ${JSON.stringify(message)}`);
+  // currently we only process the first URL
+  const urlData = urls[0];
+
+  // set up service dependencies
+  const s3Client = new S3Client();
+  const slackClient = BaseSlackClient.createFrom(
+    context,
+    SLACK_TARGETS.WORKSPACE_INTERNAL,
+  );
+
+  const config = {
+    jobId,
+    slackContext,
+  };
+
+  const services = {
+    log,
+    s3Client,
+    slackClient,
+    sqsClient,
+  };
 
   try {
-    const scraperResult = await scapeAndStore(url, jobId, context, slackContext);
+    const handlerConfigs = JSON.parse(context.env.HANDLER_CONFIGS);
 
-    const completedMessage = {
-      url,
-      jobId,
-      processingType,
-      slackContext,
-      scraperResult,
-    };
+    for (const Handler of handlers) {
+      if (Handler.accepts(processingType)) {
+        const handlerConfig = handlerConfigs[Handler.handlerName];
 
-    await sendSlackMessage(context, slackContext, `Scraped URL and stored DOM for ${url} (Job: \`${jobId}\`)...`);
+        if (!isObject(handlerConfig)) {
+          throw new Error(`Missing handler configuration for ${Handler.handlerName}`);
+        }
 
-    await sqs.sendMessage(queueUrl, completedMessage);
-
-    log.info(`Scraping completed. Message sent: ${JSON.stringify(completedMessage)}`);
-
+        const handler = new Handler(
+          {
+            ...config,
+            /**
+             * Handler-specific configuration:
+             * - completionQueueUrl
+             * - s3BucketName
+             */
+            ...handlerConfig,
+          },
+          services,
+        );
+        try {
+          // we want sequential processing for now
+          // eslint-disable-next-line no-await-in-loop
+          await handler.process(urlData, options);
+        } catch (e) {
+          log.error(`Error for handler ${Handler.handlerName}: ${e.message}`, e);
+        }
+      }
+    }
     return noContent();
   } catch (e) {
     log.error(`Error scraping URL: ${e}`);

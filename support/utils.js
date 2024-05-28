@@ -10,28 +10,22 @@
  * governing permissions and limitations under the License.
  */
 
-import { hasText } from '@adobe/spacecat-shared-utils';
-import { BaseSlackClient, SLACK_TARGETS } from '@adobe/spacecat-shared-slack-client';
-
-let slackClient = null;
+import { hasText, isObject } from '@adobe/spacecat-shared-utils';
 
 /**
  * Send a message to a Slack channel. If the message is a reply, it will be sent as a thread.
  *
- * @param contex {UniversalContext} - The context object.
+ * @param slackClient {object} - The Slack client object.
  * @param slackContext {object} - The Slack context object.
  * @param message {string} - The message to send.
  * @return {Promise<void>} - A promise that resolves when the message is sent.
  */
-export async function sendSlackMessage(context, slackContext, message) {
+export async function sendSlackMessage(slackClient, slackContext, message) {
+  if (!isObject(slackClient) || !isObject(slackContext) || !hasText(message)) {
+    return;
+  }
   const { threadTs, channelId } = slackContext;
   if (hasText(threadTs) && hasText(channelId)) {
-    if (!slackClient) {
-      slackClient = BaseSlackClient.createFrom(
-        context,
-        SLACK_TARGETS.WORKSPACE_INTERNAL,
-      );
-    }
     await slackClient.postMessage({
       channel: channelId,
       thread_ts: threadTs,

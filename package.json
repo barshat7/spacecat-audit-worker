@@ -43,7 +43,11 @@
     },
     "fastlyServiceId!important": "",
     "timeout": 900000,
-    "nodeVersion": 20
+    "nodeVersion": 20,
+    "static": [
+      "static/evaluate/default.js",
+      "static/evaluate/import.js"
+    ]
   },
   "repository": {
     "type": "git",

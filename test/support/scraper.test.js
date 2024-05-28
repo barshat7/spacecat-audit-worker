@@ -13,13 +13,64 @@
 /* eslint-env mocha */
 
 import chai from 'chai';
-// import { scrape } from '../../support/scrape.js';
+import sinon from 'sinon';
+
+/*
+import ExperimentationCandidatesDesktopHandler
+  from '../../src/handlers/experimentation-candidates-desktop-handler.js';
+import ImportHandler from '../../src/handlers/import-handler.js';
+*/
 
 const { expect } = chai;
 
 describe('Index Tests', () => {
+  // eslint-disable-next-line no-unused-vars
+  let services;
+
+  beforeEach(() => {
+    services = {
+      log: console,
+      s3Client: {
+        send: sinon.stub(),
+      },
+      slackClient: {
+        postMessage: sinon.stub(),
+      },
+      sqsClient: {
+        sendMessage: sinon.stub(),
+      },
+    };
+  });
+
+  afterEach(() => {
+    sinon.restore();
+  });
+
   it('should pass', async () => {
-    // const result = await scrape('https://mammotome.com/us/en/', console, false);
+    /*
+    const HANDLER_CONFIGS = '{"experimentation-candidates-desktop":{"completionQueueUrl":"https://sqs.us-east-1.amazonaws.com/282898975672/spacecat-content-processing-jobs-dev","s3BucketName":"spacecat-scraper-dev"},"experimentation-candidates-mobile":{"completionQueueUrl":"https://sqs.us-east-1.amazonaws.com/282898975672/spacecat-content-processing-jobs-dev","s3BucketName":"spacecat-scraper-dev"},"import":{"completionQueueUrl":"https://sqs.us-east-1.amazonaws.com/282898975672/spacecat-import-jobs-dev","s3BucketName":"spacecat-importer-dev"}}';
+    const handlerConfigs = JSON.parse(HANDLER_CONFIGS);
+    const config = {
+      jobId: '1234',
+      slackContext: {
+        threadTs: '1234',
+        channelId: '1234',
+      },
+    };
+    const handler = new ExperimentationCandidatesDesktopHandler(
+      {
+        ...config,
+        ...handlerConfigs[ImportHandler.handlerName],
+      },
+      services,
+    );
+
+    const urlData = {
+      url: 'https://mammotome.com/us/en/',
+    };
+
+    await handler.process(urlData, {});
+    */
 
     expect(true).to.equal(true);
   });
