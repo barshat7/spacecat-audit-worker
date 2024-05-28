@@ -1,3 +1,10 @@
+# [1.5.0](https://github.com/adobe/spacecat-content-scraper/compare/v1.4.1...v1.5.0) (2024-05-28)
+
+
+### Features
+
+* scraper handlers ([#60](https://github.com/adobe/spacecat-content-scraper/issues/60)) ([b1d522c](https://github.com/adobe/spacecat-content-scraper/commit/b1d522cc3f584385885e483a5e755b34f95c118a))
+
 ## [1.4.1](https://github.com/adobe/spacecat-content-scraper/compare/v1.4.0...v1.4.1) (2024-05-25)
 
 
