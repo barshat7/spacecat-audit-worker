@@ -21,6 +21,12 @@
         "eslint"
       ],
       "allowedVersions": "<9.0.0"
+    },
+    {
+      "matchPackageNames": [
+        "@sparticuz/chromium"
+      ],
+      "allowedVersions": "121.0.0"
     }
   ]
 }
