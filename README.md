@@ -143,10 +143,14 @@ The following dependencies are included in the AWS Lambda function as layers:
   - puppeteer-extra-plugin-stealth
 - Chromium (layer: `spacecat-chrome-aws-lambda`)
   - @sparticuz/chromium
+- Sharp Layer (layer: `spacecat-sharp-layer`)
+  - sharp
 
 Puppeteer is included as a layer due to issues building the function with `helix-deploy` resulting in webpack build failures.
 
 Chromium is platform-specific and is included as a layer to avoid the need to build the function for each platform or provide a custom docker image.
+
+Sharp is a dependency of the importer handler for image processing.
 
 ### Chromium Layer
 The latest release can be downloaded from the [releases page](https://github.com/Sparticuz/chromium/releases) and uploaded to AWS as a layer.
@@ -161,6 +165,9 @@ The layer is built using the following command:
 npm run build:layer
 ```
 This will create a `dist/spacecat-layer-puppeteer.zip` file that can be uploaded to AWS as a layer.
+
+### Sharp Layer
+The latest version of sharp can be downloaded from the [releases page](https://github.com/pH200/sharp-layer).
 
 For mor information on how to create layers see the [AWS documentation](https://docs.aws.amazon.com/lambda/latest/dg/configuration-layers.html).
 

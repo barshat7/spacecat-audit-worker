@@ -10,11 +10,17 @@
  * governing permissions and limitations under the License.
  */
 
+import { md2docx } from '@adobe/helix-md2docx';
+import path from 'path';
+// eslint-disable-next-line import/no-extraneous-dependencies
+import sharp from 'sharp';
+
 import AbstractHandler from './abstract-handler.js';
 
 /**
  * Handler for import as a service URLs.
  */
+
 class ImportHandler extends AbstractHandler {
   static handlerName = 'import';
 
@@ -24,16 +30,47 @@ class ImportHandler extends AbstractHandler {
       config,
       services,
     );
+
+    this.importPath = null;
+    this.urlId = config.urlId;
+  }
+
+  // force convert all images to png
+  async #image2png({ src, data }) {
+    try {
+      const png = (await sharp(data)).png();
+      const metadata = await png.metadata();
+      return {
+        data: png.toBuffer(),
+        width: metadata.width,
+        height: metadata.height,
+        type: 'image/png',
+      };
+    } catch (e) {
+      this.log('error', `Cannot convert image ${src} to png. It might corrupt the Word document and you should probably remove it from the DOM.`);
+      return null;
+    }
   }
 
   async getStoragePath() {
-    // todo: implement the storage path for docx
-    return super.getStoragePath();
+    return path.join(`imports/${this.config.jobId}/docx`, `${this.importPath}.docx`);
   }
 
-  async transformScrapeResult(scrapeResult) {
-    // todo: implement the transformation to docx
-    return super.transformScrapeResult(scrapeResult);
+  /* eslint-disable-next-line class-methods-use-this */
+  async transformScrapeResult(result) {
+    const { md, path: impPath } = result.scrapeResult;
+
+    // save path for later use
+    this.importPath = impPath;
+
+    // convert markdown to docx
+    const docx = await md2docx(md, {
+      docxStylesXML: null,
+      image2png: this.#image2png,
+      log: this.services.log,
+    });
+
+    return docx;
   }
 
   // eslint-disable-next-line class-methods-use-this

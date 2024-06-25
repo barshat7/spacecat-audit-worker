@@ -31,11 +31,21 @@ import ExperimentationCandidatesDesktopHandler
   from './handlers/experimentation-candidates-desktop-handler.js';
 import ExperimentationCandidatesMobileHandler
   from './handlers/experimentation-candidates-mobile-handler.js';
+import ImportHandler from './handlers/import-handler.js';
 
-const handlers = [
+const handlerList = [
   ExperimentationCandidatesDesktopHandler,
   ExperimentationCandidatesMobileHandler,
+  ImportHandler,
 ];
+
+const handlerProvider = (fn) => async (req, context) => {
+  context.attributes = context.attributes || {};
+  if (!Array.isArray(context.attributes.handlers) || context.attributes.handlers.length === 0) {
+    context.attributes.handlers = handlerList;
+  }
+  return fn(req, context);
+};
 
 const validateInput = (processingType, urls) => {
   if (!hasText(processingType)) {
@@ -47,7 +57,8 @@ const validateInput = (processingType, urls) => {
 };
 
 async function run(message, context) {
-  const { log, sqs: sqsClient } = context;
+  const { log, sqs: sqsClient, attributes } = context;
+  const { handlers } = attributes;
   const {
     jobId = uuidv4(),
     options = {},
@@ -56,31 +67,31 @@ async function run(message, context) {
     urls,
   } = message;
 
-  validateInput(processingType, urls);
-
-  // currently we only process the first URL
-  const urlData = urls[0];
-
-  // set up service dependencies
-  const s3Client = new S3Client();
-  const slackClient = BaseSlackClient.createFrom(
-    context,
-    SLACK_TARGETS.WORKSPACE_INTERNAL,
-  );
-
-  const config = {
-    jobId,
-    slackContext,
-  };
-
-  const services = {
-    log,
-    s3Client,
-    slackClient,
-    sqsClient,
-  };
-
   try {
+    validateInput(processingType, urls);
+
+    // currently we only process the first URL
+    const urlData = urls[0];
+
+    // set up service dependencies
+    const s3Client = new S3Client();
+    const slackClient = BaseSlackClient.createFrom(
+      context,
+      SLACK_TARGETS.WORKSPACE_INTERNAL,
+    );
+
+    const config = {
+      jobId,
+      slackContext,
+    };
+
+    const services = {
+      log,
+      s3Client,
+      slackClient,
+      sqsClient,
+    };
+
     const handlerConfigs = JSON.parse(context.env.HANDLER_CONFIGS);
 
     for (const Handler of handlers) {
@@ -120,6 +131,7 @@ async function run(message, context) {
 }
 
 export const main = wrap(run)
+  .with(handlerProvider)
   .with(sqsEventAdapter)
   .with(sqsWrapper)
   .with(secrets, { name: resolveSecretsName })

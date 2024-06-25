@@ -132,3 +132,6 @@ dist
 # Intellij
 .idea/
 .DS_Store
+
+# Project
+static/inject/import.js

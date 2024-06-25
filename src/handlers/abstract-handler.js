@@ -36,7 +36,7 @@ import AdblockerPlugin from 'puppeteer-extra-plugin-adblocker';
 import fs from 'fs';
 import path from 'path';
 
-import { sendSlackMessage } from '../../support/utils.js';
+import { sendSlackMessage } from '../support/utils.js';
 
 puppeteer.use(StealthPlugin());
 puppeteer.use(AdblockerPlugin({ blockTrackers: true }));
@@ -145,6 +145,19 @@ class AbstractHandler {
   }
 
   /**
+   * Gets the path to the script to inject in the page.
+   * @private
+   * @returns {string} The path to the script.
+   */
+  #getPageInjectCode() {
+    const handlerScriptPath = path.resolve(`./static/inject/${this.handlerName}.js`);
+    if (fs.existsSync(handlerScriptPath)) {
+      return fs.readFileSync(handlerScriptPath, 'utf8');
+    }
+    return null;
+  }
+
+  /**
    * Gets the code for evaluating on the page in the browser context.
    * The function is read from a script file.
    * @private
@@ -219,6 +232,12 @@ class AbstractHandler {
       await page.waitForSelector('body', { timeout: 10000 });
 
       this.#log('info', `Page Loaded: ${url}`);
+
+      // Inject the script into the page
+      const pageInjectCode = this.#getPageInjectCode();
+      if (hasText(pageInjectCode)) {
+        await page.evaluate(pageInjectCode);
+      }
 
       // The code is executed in the browser context
       const pageEvalCode = this.#getPageEvalCode();
@@ -324,15 +343,23 @@ class AbstractHandler {
    * @private
    * @param {Object} result - The result of the processing.
    */
-  async #onProcessingComplete(result) {
+  async #onProcessingComplete(result, urlData) {
     this.#log('info', `Scrape complete. Result: ${JSON.stringify(result)}`);
 
     const completedMessage = {
-      url: result.finalUrl,
       jobId: this.config.jobId,
       processingType: this.handlerName,
       slackContext: this.config.slackContext,
-      scrapeResultLocation: result.location,
+      scrapeResults: [{
+        location: result.location,
+        metadata: {
+          urlId: urlData.urlId,
+          url: result.finalUrl,
+          status: result.status || 'COMPLETE',
+          path: result.scrapeResult.path,
+          file: `${result.scrapeResult.path}.docx`,
+        },
+      }],
     };
 
     await this.sqsClient.sendMessage(this.config.completionQueueUrl, completedMessage);
@@ -367,7 +394,7 @@ class AbstractHandler {
       const transformedResult = await this.transformScrapeResult(result);
       result.location = await this.#store(transformedResult, options);
 
-      await this.#onProcessingComplete(result);
+      await this.#onProcessingComplete(result, urlData);
 
       return result;
     } catch (e) {

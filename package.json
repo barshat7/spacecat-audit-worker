@@ -18,7 +18,8 @@
     "deploy-routes": "hedy --no-build -no-hints -l major",
     "deploy-ci": "hedy -v --deploy --test --pkgVersion=ci$CIRCLE_BUILD_NUM -l ci --cleanup-ci=24h",
     "deploy-secrets": "hedy --aws-update-secrets --params-file=secrets/secrets.env",
-    "prepare": "husky install"
+    "prepare": "husky install",
+    "postinstall": "node static/npm/post-install-get-helix-importer-lib.js"
   },
   "wsk": {
     "target": "aws",
@@ -28,7 +29,8 @@
       "puppeteer-core",
       "puppeteer-extra",
       "puppeteer-extra-plugin-stealth",
-      "puppeteer-extra-plugin-adblocker"
+      "puppeteer-extra-plugin-adblocker",
+      "sharp"
     ],
     "layers": [
       "arn:aws:lambda:us-east-1:282898975672:layer:spacecat-chrome-aws-lambda:1",
@@ -72,15 +74,18 @@
     "@sparticuz/chromium": "121.0.0",
     "c8": "9.1.0",
     "chai": "4.4.1",
+    "chai-as-promised": "8.0.0",
     "dotenv": "16.4.5",
     "eslint": "8.57.0",
     "husky": "9.0.11",
     "mocha": "10.4.0",
+    "nock": "13.5.4",
     "nodemon": "3.1.4",
     "puppeteer-core": "22.12.0",
     "puppeteer-extra": "3.3.6",
     "puppeteer-extra-plugin-adblocker": "2.13.6",
     "puppeteer-extra-plugin-stealth": "2.11.2",
+    "sharp": "0.33.4",
     "sinon": "17.0.2"
   },
   "lint-staged": {
@@ -88,6 +93,7 @@
     "*.cjs": "eslint"
   },
   "dependencies": {
+    "@adobe/helix-md2docx": "2.1.57",
     "@adobe/helix-shared-secrets": "2.2.8",
     "@adobe/helix-shared-wrap": "2.0.2",
     "@adobe/helix-status": "10.1.2",
