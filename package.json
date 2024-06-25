@@ -93,7 +93,7 @@
     "*.cjs": "eslint"
   },
   "dependencies": {
-    "@adobe/helix-md2docx": "2.1.57",
+    "@adobe/helix-md2docx": "2.1.63",
     "@adobe/helix-shared-secrets": "2.2.8",
     "@adobe/helix-shared-wrap": "2.0.2",
     "@adobe/helix-status": "10.1.2",
