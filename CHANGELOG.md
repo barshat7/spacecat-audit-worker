@@ -1,3 +1,10 @@
+# [1.6.0](https://github.com/adobe/spacecat-content-scraper/compare/v1.5.9...v1.6.0) (2024-06-25)
+
+
+### Features
+
+* implement Franklin import via the import handler  ([#68](https://github.com/adobe/spacecat-content-scraper/issues/68)) ([2176fd3](https://github.com/adobe/spacecat-content-scraper/commit/2176fd3e321817c796ec85345fa033864caea6ac))
+
 ## [1.5.9](https://github.com/adobe/spacecat-content-scraper/compare/v1.5.8...v1.5.9) (2024-06-22)
 
 
