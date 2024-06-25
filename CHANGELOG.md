@@ -1,3 +1,10 @@
+## [1.6.1](https://github.com/adobe/spacecat-content-scraper/compare/v1.6.0...v1.6.1) (2024-06-25)
+
+
+### Bug Fixes
+
+* **deps:** update dependency @adobe/helix-md2docx to v2.1.63 ([#86](https://github.com/adobe/spacecat-content-scraper/issues/86)) ([e13d989](https://github.com/adobe/spacecat-content-scraper/commit/e13d9898e7bf3cad956f9f3201bc421cd458a2aa))
+
 # [1.6.0](https://github.com/adobe/spacecat-content-scraper/compare/v1.5.9...v1.6.0) (2024-06-25)
 
 
