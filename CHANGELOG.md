@@ -1,3 +1,10 @@
+## [1.6.3](https://github.com/adobe/spacecat-content-scraper/compare/v1.6.2...v1.6.3) (2024-06-27)
+
+
+### Bug Fixes
+
+* add missing static file to wsk configuration ([#88](https://github.com/adobe/spacecat-content-scraper/issues/88)) ([b5e73cc](https://github.com/adobe/spacecat-content-scraper/commit/b5e73cca109c96b06438fabb9272acb4ce005008))
+
 ## [1.6.2](https://github.com/adobe/spacecat-content-scraper/compare/v1.6.1...v1.6.2) (2024-06-27)
 
 
