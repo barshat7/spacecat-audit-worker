@@ -48,7 +48,9 @@
     "nodeVersion": 20,
     "static": [
       "static/evaluate/default.js",
-      "static/evaluate/import.js"
+      "static/evaluate/import.js",
+      "static/inject/import.js",
+      "static/resources/import/styles.xml"
     ]
   },
   "repository": {

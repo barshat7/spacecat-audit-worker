@@ -11,6 +11,7 @@
  */
 
 import { md2docx } from '@adobe/helix-md2docx';
+import fs from 'fs';
 import path from 'path';
 // eslint-disable-next-line import/no-extraneous-dependencies
 import sharp from 'sharp';
@@ -20,6 +21,8 @@ import AbstractHandler from './abstract-handler.js';
 /**
  * Handler for import as a service URLs.
  */
+
+const DOCX_STYLES_XML_PATH = './static/resources/import/styles.xml';
 
 class ImportHandler extends AbstractHandler {
   static handlerName = 'import';
@@ -63,9 +66,12 @@ class ImportHandler extends AbstractHandler {
     // save path for later use
     this.importPath = impPath;
 
+    // read styles.xml file
+    const stylesXML = fs.readFileSync(path.resolve(DOCX_STYLES_XML_PATH), 'utf-8');
+
     // convert markdown to docx
     const docx = await md2docx(md, {
-      docxStylesXML: null,
+      stylesXML,
       image2png: this.#image2png,
       log: this.services.log,
     });
