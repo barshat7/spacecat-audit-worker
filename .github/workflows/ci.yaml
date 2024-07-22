@@ -67,6 +67,20 @@ jobs:
       - name: Configure Environment
         run: echo -e "LOG_LEVEL=info\n" > .env
 
+      - name: Configure AWS Credentials
+        id: creds
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-region: us-east-1
+          role-to-assume: arn:aws:iam::282898975672:role/spacecat-role-github-actions
+
+      - name: Fetch AWS Secrets
+        uses: aws-actions/aws-secretsmanager-get-secrets@v2
+        with:
+          parse-json-secrets: true
+          secret-ids: |
+            /spacecat/github-action-secrets
+
       - name: Semantic Release
         run: npm run semantic-release
         env:
