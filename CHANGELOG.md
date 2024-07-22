@@ -1,3 +1,10 @@
+## [1.6.9](https://github.com/adobe/spacecat-content-scraper/compare/v1.6.8...v1.6.9) (2024-07-22)
+
+
+### Bug Fixes
+
+* remove circle ci and introduce gh actions ([#101](https://github.com/adobe/spacecat-content-scraper/issues/101)) ([1fda1a8](https://github.com/adobe/spacecat-content-scraper/commit/1fda1a808b6007cd0a0fbd00cd5e364c0cc0432d))
+
 ## [1.6.8](https://github.com/adobe/spacecat-content-scraper/compare/v1.6.7...v1.6.8) (2024-07-22)
 
 
