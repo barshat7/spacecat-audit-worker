@@ -3,6 +3,14 @@
 
 ### Bug Fixes
 
+* obtain credentials for main ([#104](https://github.com/adobe/spacecat-content-scraper/issues/104)) ([ef161c5](https://github.com/adobe/spacecat-content-scraper/commit/ef161c55eec22e039abc054e865530d5a3314ed1))
+* remove circle ci and introduce gh actions ([#101](https://github.com/adobe/spacecat-content-scraper/issues/101)) ([1fda1a8](https://github.com/adobe/spacecat-content-scraper/commit/1fda1a808b6007cd0a0fbd00cd5e364c0cc0432d))
+
+## [1.6.9](https://github.com/adobe/spacecat-content-scraper/compare/v1.6.8...v1.6.9) (2024-07-22)
+
+
+### Bug Fixes
+
 * remove circle ci and introduce gh actions ([#101](https://github.com/adobe/spacecat-content-scraper/issues/101)) ([1fda1a8](https://github.com/adobe/spacecat-content-scraper/commit/1fda1a808b6007cd0a0fbd00cd5e364c0cc0432d))
 
 ## [1.6.8](https://github.com/adobe/spacecat-content-scraper/compare/v1.6.7...v1.6.8) (2024-07-22)
