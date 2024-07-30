@@ -11,11 +11,7 @@
  */
 
 import {
-  hasText,
-  isBoolean,
-  isNumber,
-  isObject,
-  isValidUrl,
+  hasText, isBoolean, isNumber, isObject, isValidUrl,
 } from '@adobe/spacecat-shared-utils';
 import { PutObjectCommand } from '@aws-sdk/client-s3';
 
@@ -78,8 +74,8 @@ class AbstractHandler {
     this.slackClient = services.slackClient;
 
     // Local
-    this.browser = null;
     this.device = config.device;
+    this.browser = null;
   }
 
   /**
@@ -188,11 +184,49 @@ class AbstractHandler {
         headless: chromium.headless,
       };
       this.browser = await puppeteer.launch(options);
+
+      this.#log('info', 'Browser Launched');
     }
-
-    this.#log('info', 'Browser Launched');
-
     return this.browser;
+  }
+
+  #cleanupTmpFiles(browserProfileDir, tmpDir) {
+    if (browserProfileDir) {
+      fs.rmSync(browserProfileDir.split('=')[1], { recursive: true, force: true });
+      this.#log('info', `Deleted browser profile directory: ${browserProfileDir}`);
+    }
+    const files = fs.readdirSync(tmpDir);
+    files.forEach((file) => {
+      if (file.startsWith('core.chromium.')) {
+        const filePath = path.join(tmpDir, file);
+        fs.rmSync(filePath, { force: true });
+        this.#log('info', `Core dump file ${filePath} deleted successfully.`);
+      }
+    });
+  }
+
+  async #closeBrowser(browser) {
+    const browserProfileDir = browser?.process().spawnargs.find((arg) => arg.includes('--user-data-dir='));
+    try {
+      // set a timeout to close the browser
+      await Promise.race([
+        browser?.close(),
+        new Promise((_, reject) => {
+          setTimeout(() => reject(new Error('Close timeout')), 3000);
+        }),
+      ]);
+    } catch (error) {
+      this.#log('error', `Error closing browser: ${error.message}`, error);
+      if (error.message === 'Close timeout' && browser?.process()) {
+        this.#log('info', 'Killing browser process after close timeout');
+        browser?.process().kill();
+      } else {
+        throw error;
+      }
+    }
+    this.browser = null;
+    // delete browser profile directory and all its contents
+    this.#cleanupTmpFiles(browserProfileDir, '/tmp');
   }
 
   /**
@@ -200,15 +234,19 @@ class AbstractHandler {
    * @private
    * @param {string} url - The URL to scrape.
    * @param {Object} options - The options for scraping.
+   * @param {Number} retries - The number of retries.
    * @returns {Promise<Object>} The scrape result.
    * @throws Will throw an error if scraping fails.
    */
-  async #scrape(url, options) {
-    const startScrape = Date.now();
-    const browser = await this.#getBrowser();
+  async #scrape(url, options, retries = 0) {
+    const maxRetries = 1;
+    let browser = null;
 
     try {
+      this.#log('info', `Scraping URL: ${url} with retries: ${retries}`);
+      browser = await this.#getBrowser();
       const page = await browser.newPage();
+      const startScrape = Date.now();
       const enableJavascript = isBoolean(options.enableJavascript)
         ? options.enableJavascript
         : true;
@@ -231,24 +269,21 @@ class AbstractHandler {
 
       await page.waitForSelector('body', { timeout: 10000 });
 
-      this.#log('info', `Page Loaded: ${url}`);
-
-      // Inject the script into the page
       const pageInjectCode = this.#getPageInjectCode();
       if (hasText(pageInjectCode)) {
         await page.evaluate(pageInjectCode);
       }
 
-      // The code is executed in the browser context
       const pageEvalCode = this.#getPageEvalCode();
       const scrapeResult = await page.evaluate(pageEvalCode);
-
-      await page.close();
-
       const endScrape = Date.now();
       const scrapeTime = endScrape - startScrape;
 
       this.#log('info', `Time taken for scraping: ${scrapeTime}ms`);
+
+      if (page && !page.isClosed()) {
+        await page.close();
+      }
 
       return {
         finalUrl: page.url(),
@@ -257,8 +292,19 @@ class AbstractHandler {
         scrapedAt: endScrape,
         userAgent: await browser.userAgent(),
       };
-    } finally {
-      browser.close();
+    } catch (e) {
+      if (retries >= maxRetries) {
+        throw e;
+      }
+      this.#log('error', `Error scraping URL, retrying... ${e.message}`, e);
+
+      await this.#closeBrowser(browser);
+
+      // Retry after 1 second
+      await new Promise((resolve) => {
+        setTimeout(resolve, 1000);
+      });
+      return this.#scrape(url, options, retries + 1);
     }
   }
 
@@ -266,6 +312,7 @@ class AbstractHandler {
    * Gets the storage path for the scraped content.
    * @returns {Promise<string>} The storage path.
    */
+  // eslint-disable-next-line no-unused-vars
   async getStoragePath() {
     return `scrapes/${this.config.jobId}/scrape.json`;
   }
@@ -319,87 +366,106 @@ class AbstractHandler {
   }
 
   /**
-   * Handles processing errors.
-   * @private
-   * @param {Error} e - The error that occurred.
-   */
-  async #onProcessingError(e) {
-    this.#log('error', 'Failed to process', e);
-    await sendSlackMessage(this.slackClient, this.config.slackContext, `Failed to process with error: ${e} [${this.handlerName}]`);
-  }
-
-  /**
    * Logs the start of the processing and sends a Slack message.
    * @private
-   * @param {string} url - The URL being processed.
+   * @param {Array} urlsData - The array of URL data to process.
    */
-  async #onProcessingStart(url) {
-    this.#log('info', `Processing URL: ${url}`);
-    await sendSlackMessage(this.slackClient, this.config.slackContext, `Starting scrape of URL: ${url} [${this.handlerName}]`);
+  async onProcessingStart(urlsData) {
+    this.#log('info', `Processing ${urlsData.length} URLs`);
+    await sendSlackMessage(this.slackClient, this.config.slackContext, `Starting scrape of ${urlsData.length} URLs [${this.handlerName}]`);
   }
 
   /**
    * Logs the completion of the processing and sends a completion message to SQS and Slack.
    * @private
-   * @param {Object} result - The result of the processing.
+   * @param {Array} results - The results of the processing.
    */
-  async #onProcessingComplete(result, urlData) {
-    this.#log('info', `Scrape complete. Result: ${JSON.stringify(result)}`);
+  async onProcessingComplete(results) {
+    this.#log('info', `[${this.handlerName}] Scrape complete. Scraped ${results.length} URLs. Failed to scrape ${results.filter((result) => result.error).length} URLs.`);
 
     const completedMessage = {
       jobId: this.config.jobId,
       processingType: this.handlerName,
       slackContext: this.config.slackContext,
-      scrapeResults: [{
-        location: result.location,
-        metadata: {
-          urlId: urlData.urlId,
-          url: result.finalUrl,
-          status: result.status || 'COMPLETE',
-          path: result.scrapeResult.path,
-          file: `${result.scrapeResult.path}.docx`,
-        },
-      }],
+      scrapeResults: results.map((result) => {
+        if (result.error) {
+          return {
+            error: result.error,
+            metadata: {
+              url: result.url,
+              urlId: result.urlId,
+              status: 'ERROR',
+            },
+          };
+        }
+        return {
+          location: result.location,
+          metadata: {
+            urlId: result.urlId,
+            url: result.finalUrl,
+            status: result.status || 'COMPLETE',
+            path: result.scrapeResult.path,
+          },
+        };
+      }),
     };
 
     await this.sqsClient.sendMessage(this.config.completionQueueUrl, completedMessage);
-    await sendSlackMessage(this.slackClient, this.config.slackContext, `Scrape complete for ${result.finalUrl} [${this.handlerName}]`);
+    await sendSlackMessage(this.slackClient, this.config.slackContext, `Scrape complete. Scraped ${results.length} URLs. Failed to scrape ${results.filter((result) => result.error).length} URLs [${this.handlerName}]`);
   }
 
   /**
-   * Processes the given URL.
-   * @param {object} urlData - The URL data to process.
-   * @param {string} urlData.url - The URL to process, required.
-   * @param {string} [urlData.urlId] - Optional URL ID.
-   * @param {string} [urlData.status] - Optional URL status.
+   * Processes the given URLs.
+   * @param {Array} urlsData - The array of URL data to process.
+   * @param {object} urlsData[] - The URL data object.
+   * @param {string} urlsData[].url - The URL to process, required.
+   * @param {string} [urlsData[].urlId] - Optional URL ID.
+   * @param {string} [urlsData[].status] - Optional URL status.
    * @param {object} [options] - The processing options.
    * @param {boolean} [options.enableJavascript] - Whether to enable JavaScript in the browser,
    * default is true.
    * @param {int} [options.pageLoadTimeout] - The page load timeout in milliseconds,
    * default is 30000.
-   * @returns {Promise<Object>} The result of the processing.
+   * @returns {Promise<Array>} The results of the processing.
    * @throws Will throw an error if processing fails.
    */
-  async process(urlData, options = {}) {
+  async process(urlsData, options = {}) {
+    await this.onProcessingStart(urlsData);
+    const results = [];
+    for (const urlData of urlsData) {
+      // eslint-disable-next-line no-await-in-loop
+      const result = await this.processUrl(urlData, options);
+      results.push(result);
+      this.#log('info', `Processed ${results.length} URLs...`);
+
+      // wait for 1s before processing the next URL to avoid rate limiting
+      // eslint-disable-next-line no-await-in-loop
+      await new Promise((resolve) => {
+        setTimeout(resolve, 1000);
+      });
+    }
+    await this.onProcessingComplete(results);
+    return results;
+  }
+
+  async processUrl(urlData, options = {}) {
     const { url } = urlData;
 
     if (!isValidUrl(url)) {
-      throw new Error('Invalid URL');
+      this.#log('error', `Invalid URL: ${url}`);
+      return { error: `Invalid URL: ${url}` };
     }
 
     try {
-      await this.#onProcessingStart(url);
-
       const result = await this.#scrape(url, options);
       const transformedResult = await this.transformScrapeResult(result);
       result.location = await this.#store(transformedResult, options);
-
-      await this.#onProcessingComplete(result, urlData);
+      result.urlId = urlData.urlId;
 
       return result;
     } catch (e) {
-      await this.#onProcessingError(e);
-      throw e;
+      this.#log('error', `Failed to scrape URL: ${e.message}`, e);
+      return { url, urlId: urlData.urlId, error: e.message };
     }
   }
 

@@ -15,11 +15,7 @@ import secrets from '@adobe/helix-shared-secrets';
 import { helixStatus } from '@adobe/helix-status';
 import { internalServerError, noContent } from '@adobe/spacecat-shared-http-utils';
 import {
-  hasText,
-  isObject,
-  resolveSecretsName,
-  sqsEventAdapter,
-  sqsWrapper,
+  hasText, isObject, resolveSecretsName, sqsEventAdapter, sqsWrapper,
 } from '@adobe/spacecat-shared-utils';
 
 import { v4 as uuidv4 } from 'uuid';
@@ -27,16 +23,16 @@ import { v4 as uuidv4 } from 'uuid';
 import { S3Client } from '@aws-sdk/client-s3';
 import { BaseSlackClient, SLACK_TARGETS } from '@adobe/spacecat-shared-slack-client';
 
-import ExperimentationCandidatesDesktopHandler
-  from './handlers/experimentation-candidates-desktop-handler.js';
-import ExperimentationCandidatesMobileHandler
-  from './handlers/experimentation-candidates-mobile-handler.js';
+import ExperimentationCandidatesDesktopHandler from './handlers/experimentation-candidates-desktop-handler.js';
+import ExperimentationCandidatesMobileHandler from './handlers/experimentation-candidates-mobile-handler.js';
 import ImportHandler from './handlers/import-handler.js';
+import MarkdownHandler from './handlers/markdown-handler.js';
 
 const handlerList = [
   ExperimentationCandidatesDesktopHandler,
   ExperimentationCandidatesMobileHandler,
   ImportHandler,
+  MarkdownHandler,
 ];
 
 const handlerProvider = (fn) => async (req, context) => {
@@ -70,9 +66,6 @@ async function run(message, context) {
   try {
     validateInput(processingType, urls);
 
-    // currently we only process the first URL
-    const urlData = urls[0];
-
     // set up service dependencies
     const s3Client = new S3Client();
     const slackClient = BaseSlackClient.createFrom(
@@ -101,7 +94,6 @@ async function run(message, context) {
         if (!isObject(handlerConfig)) {
           throw new Error(`Missing handler configuration for ${Handler.handlerName}`);
         }
-
         const handler = new Handler(
           {
             ...config,
@@ -117,7 +109,7 @@ async function run(message, context) {
         try {
           // we want sequential processing for now
           // eslint-disable-next-line no-await-in-loop
-          await handler.process(urlData, options);
+          await handler.process(urls, options);
         } catch (e) {
           log.error(`Error for handler ${Handler.handlerName}: ${e.message}`, e);
         }

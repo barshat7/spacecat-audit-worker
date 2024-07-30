@@ -18,6 +18,7 @@ import sinon from 'sinon';
 import nock from 'nock';
 import puppeteer from 'puppeteer-extra';
 
+import { GetObjectCommand, PutObjectCommand } from '@aws-sdk/client-s3';
 import ImportHandler from '../../src/handlers/import-handler.js';
 
 chai.use(chaiAsPromised);
@@ -28,6 +29,10 @@ const createBrowserStub = (pageStub) => sinon.stub(puppeteer, 'launch').resolves
   newPage: () => pageStub,
   close: sinon.stub(),
   userAgent: async () => 'test-user-agent',
+  process: () => ({
+    spawnargs: ['--user-data-dir=/tmp/puppeteer_dev_profile'],
+  }),
+
 });
 
 const createPageStub = (scrapeResult = {}, url = 'https://libre-software.net/image/avif-test/') => ({
@@ -38,6 +43,7 @@ const createPageStub = (scrapeResult = {}, url = 'https://libre-software.net/ima
   setJavaScriptEnabled: sinon.stub(),
   evaluate: sinon.stub().resolves(scrapeResult),
   url: sinon.stub().returns(url),
+  isClosed: sinon.stub().returns(false),
 });
 
 describe('ImportHandler', () => {
@@ -58,6 +64,7 @@ describe('ImportHandler', () => {
     };
     mockServices = {
       log: {
+        debug: sinon.stub(),
         info: sinon.stub(),
         warn: sinon.stub(),
         error: sinon.stub(),
@@ -66,7 +73,17 @@ describe('ImportHandler', () => {
         sendMessage: sinon.stub().returns({ promise: () => Promise.resolve() }),
       },
       s3Client: {
-        send: sinon.stub().returns({ promise: () => Promise.resolve() }),
+        send: sinon.stub().callsFake((command) => {
+          if (command instanceof PutObjectCommand) {
+            return Promise.resolve();
+          } else if (command instanceof GetObjectCommand) {
+            const error = new Error('The specified key does not exist.');
+            error.name = 'NoSuchKey';
+            return Promise.reject(error);
+          } else {
+            return Promise.reject(new Error('Unsupported command'));
+          }
+        }),
       },
       slackClient: {
         postMessage: sinon.stub().returns({ promise: () => Promise.resolve() }),
@@ -86,23 +103,25 @@ describe('ImportHandler', () => {
     const pageStub = createPageStub({ md });
     createBrowserStub(pageStub);
 
-    const result = await handler.process({ url: 'https://example.com' });
+    const results = await handler.process([{ url: 'https://example.com' }]);
 
-    expect(result).to.have.property('scrapeResult');
-    expect(result.scrapeResult).to.deep.equal({ md });
+    expect(results.length).to.equal(1);
+    expect(results[0]).to.have.property('scrapeResult');
+    expect(results[0].scrapeResult).to.deep.equal({ md });
     expect(pageStub.setJavaScriptEnabled.callCount).to.equal(0);
     expect(pageStub.goto.calledWith('https://example.com', { waitUntil: 'networkidle2', timeout: 30000 })).to.be.true;
-  });
+  }).timeout(3000);
 
   it('fails converting image', async () => {
     const md = '## Import handler test page\n\n![Hello World](data:image/dummy;base64,iVBORw0K[...]ElFTkSuQmCC)\n\nSome other text\n\n';
     const pageStub = createPageStub({ md });
     createBrowserStub(pageStub);
 
-    const result = await handler.process({ url: 'https://example.com' });
+    const results = await handler.process([{ url: 'https://example.com' }]);
 
-    expect(result).to.have.property('scrapeResult');
-    expect(result.scrapeResult).to.deep.equal({ md });
+    expect(results.length).to.equal(1);
+    expect(results[0]).to.have.property('scrapeResult');
+    expect(results[0].scrapeResult).to.deep.equal({ md });
     expect(pageStub.setJavaScriptEnabled.callCount).to.equal(0);
     expect(pageStub.goto.calledWith('https://example.com', { waitUntil: 'networkidle2', timeout: 30000 })).to.be.true;
   });
@@ -113,15 +132,16 @@ describe('ImportHandler', () => {
 
       createBrowserStub(createPageStub(scrapeResult));
 
-      const result = await handler.process({ url: 'https://libre-software.net/image/avif-test/' });
+      const results = await handler.process([{ url: 'https://libre-software.net/image/avif-test/' }]);
 
       expect(mockServices.s3Client.send.calledOnce).to.be.true;
-      expect(result.finalUrl).to.equal('https://libre-software.net/image/avif-test/');
-      expect(result.scrapeTime).to.be.a('number');
-      expect(result.scrapedAt).to.be.a('number');
-      expect(result.location).to.equal('imports/test-job-id/docx/undefined.docx');
-      expect(result.userAgent).to.equal('test-user-agent');
-      expect(result.scrapeResult).to.deep.equal(scrapeResult);
+      expect(results.length).to.equal(1);
+      expect(results[0].finalUrl).to.equal('https://libre-software.net/image/avif-test/');
+      expect(results[0].scrapeTime).to.be.a('number');
+      expect(results[0].scrapedAt).to.be.a('number');
+      expect(results[0].location).to.equal('imports/test-job-id/docx/undefined.docx');
+      expect(results[0].userAgent).to.equal('test-user-agent');
+      expect(results[0].scrapeResult).to.deep.equal(scrapeResult);
       expect(mockServices.s3Client.send.calledOnce).to.be.true;
     });
   });

@@ -4,11 +4,15 @@ This is a versatile web scraper that scrapes content from a given URL, processes
 
 ## How it Works
 
-The project is deployed as an AWS Lambda function triggered by an SQS message. The message contains the URL of the page to scrape and additional metadata required for processing. The function uses a headless Chromium browser to scrape the content, leveraging Puppeteer to interact with the browser. Puppeteer uses the `puppeteer-extra-plugin-stealth` plugin to avoid bot detection by websites. The content is then processed by specific handlers, which encapsulate the logic for different types of tasks, and stored in a JSON file on an S3 bucket.
+The project is deployed as an AWS Lambda function triggered by an SQS message. The message contains an Array of URLs to scrape and additional metadata required for processing. The function uses a headless Chromium browser to scrape the content, leveraging Puppeteer to interact with the browser. Puppeteer uses the `puppeteer-extra-plugin-stealth` plugin to avoid bot detection by websites. The content is then processed by specific handlers, which encapsulate the logic for different types of tasks, and stored in a JSON file on an S3 bucket.
+
+The Chromium browser launched by Puppeteer creates a user profile and core dumps in the `/tmp` directory of the Lambda function. With each Request, these files grow in size and can cause the function to run out of disk space. To prevent this, the function is configured to clear these files and restart the browser if the disk space is exceeded. Sometimes when the disk space is exceeded, the browser can become unresponsive. In this case the browser is killed and the scrape of the page will be retried.
 
 ### Incoming SQS Message Format
 
-The SQS message that triggers the AWS Lambda function must adhere to the following JSON structure:
+The SQS message that triggers the AWS Lambda function must adhere to the following JSON structure.
+
+The URLs Array should not exceed 200-300 URLs per message, otherwise the Lambda function will time out. If there is a need to scrape more than this number of URLs, the URLs should be split into multiple messages, to trigger multiple Lambda function invocations simultaneously.
 
 ```json
 {

@@ -20,6 +20,8 @@ import sinon from 'sinon';
 import nock from 'nock';
 import puppeteer from 'puppeteer-extra';
 
+import { GetObjectCommand, PutObjectCommand } from '@aws-sdk/client-s3';
+import fs from 'fs';
 import AbstractHandler from '../../src/handlers/abstract-handler.js';
 
 chai.use(chaiAsPromised);
@@ -36,6 +38,9 @@ const createBrowserStub = (pageStub) => sinon.stub(puppeteer, 'launch').resolves
   newPage: () => pageStub,
   close: sinon.stub(),
   userAgent: async () => 'test-user-agent',
+  process: () => ({
+    spawnargs: ['--user-data-dir=/tmp/puppeteer_dev_profile'],
+  }),
 });
 
 const createPageStub = (scrapeResult = {}, url = 'https://example.com') => ({
@@ -46,6 +51,7 @@ const createPageStub = (scrapeResult = {}, url = 'https://example.com') => ({
   setJavaScriptEnabled: sinon.stub(),
   evaluate: sinon.stub().resolves(scrapeResult),
   url: sinon.stub().returns(url),
+  isClosed: sinon.stub().returns(false),
 });
 
 describe('AbstractHandler', () => {
@@ -67,6 +73,7 @@ describe('AbstractHandler', () => {
     };
     mockServices = {
       log: {
+        debug: sinon.stub(),
         info: sinon.stub(),
         error: sinon.stub(),
       },
@@ -74,7 +81,17 @@ describe('AbstractHandler', () => {
         sendMessage: sinon.stub().returns({ promise: () => Promise.resolve() }),
       },
       s3Client: {
-        send: sinon.stub().returns({ promise: () => Promise.resolve() }),
+        send: sinon.stub().callsFake((command) => {
+          if (command instanceof PutObjectCommand) {
+            return Promise.resolve();
+          } else if (command instanceof GetObjectCommand) {
+            const error = new Error('The specified key does not exist.');
+            error.name = 'NoSuchKey';
+            return Promise.reject(error);
+          } else {
+            return Promise.reject(new Error('Unsupported command'));
+          }
+        }),
       },
       slackClient: {
         postMessage: sinon.stub().returns({ promise: () => Promise.resolve() }),
@@ -178,7 +195,7 @@ describe('AbstractHandler', () => {
       };
       const browserLaunchStub = createBrowserStub(mockPage);
 
-      await handler.process({ url: 'https://example.com' });
+      await handler.process([{ url: 'https://example.com' }]);
 
       expect(browserLaunchStub.calledOnce).to.be.true;
       expect(browserLaunchStub.calledWith(expectedOptions)).to.be.true;
@@ -252,21 +269,24 @@ describe('AbstractHandler', () => {
       const browserLaunchStub = createBrowserStub(mockPage);
 
       process.env.AWS_EXECUTION_ENV = 'AWS_Lambda_nodejs14.x';
-      await handler.process({ url: 'https://example.com' });
+      await handler.process([{ url: 'https://example.com' }]);
       delete process.env.AWS_EXECUTION_ENV;
 
       expect(browserLaunchStub.calledOnce).to.be.true;
       expect(browserLaunchStub.calledWith(expectedOptions)).to.be.true;
     });
 
-    it('throws error when invalid URL is provided', async () => {
-      await expect(handler.process({ url: 'invalid-url' })).to.be.rejectedWith('Invalid URL');
+    it('returns error when invalid URL is provided', async () => {
+      createBrowserStub(mockPage);
+      const results = await handler.process([{ url: 'invalid-url' }]);
+      expect(results.length).to.equal(1);
+      expect(results[0].error).to.equal('Invalid URL: invalid-url');
     });
 
     it('logs the scraping process', async () => {
       const browserLaunchStub = createBrowserStub(mockPage);
 
-      await handler.process({ url: 'https://example.com' });
+      await handler.process([{ url: 'https://example.com' }]);
 
       expect(browserLaunchStub.calledOnce).to.be.true;
       expect(mockServices.log.info.calledWith('[TestHandler] Browser Launched')).to.be.true;
@@ -276,10 +296,11 @@ describe('AbstractHandler', () => {
       const pageStub = createPageStub({ data: 'scraped data' });
       createBrowserStub(pageStub);
 
-      const result = await handler.process({ url: 'https://example.com' });
+      const results = await handler.process([{ url: 'https://example.com' }]);
 
-      expect(result).to.have.property('scrapeResult');
-      expect(result.scrapeResult).to.deep.equal({ data: 'scraped data' });
+      expect(results.length).to.equal(1);
+      expect(results[0]).to.have.property('scrapeResult');
+      expect(results[0].scrapeResult).to.deep.equal({ data: 'scraped data' });
       expect(pageStub.setJavaScriptEnabled.callCount).to.equal(0);
       expect(pageStub.goto.calledWith('https://example.com', { waitUntil: 'networkidle2', timeout: 30000 })).to.be.true;
     });
@@ -287,10 +308,81 @@ describe('AbstractHandler', () => {
     it('loads evaluate file specific to handler', async () => {
       createBrowserStub(createPageStub({ data: 'scraped data' }));
       const importHandler = new TestHandler('import', mockConfig, mockServices);
-      const result = await importHandler.process({ url: 'https://example.com' });
+      const results = await importHandler.process([{ url: 'https://example.com' }]);
 
-      expect(result).to.have.property('scrapeResult');
-      expect(result.scrapeResult).to.deep.equal({ data: 'scraped data' });
+      expect(results.length).to.equal(1);
+      expect(results[0]).to.have.property('scrapeResult');
+      expect(results[0].scrapeResult).to.deep.equal({ data: 'scraped data' });
+    });
+
+    it('resets browser if there is a resource error', async () => {
+      const pageStub = createPageStub({ data: 'scraped data' });
+      pageStub.emulate.rejects(new Error('net::ERR_INSUFFICIENT_RESOURCES'));
+      const browser = createBrowserStub(pageStub);
+      await handler.process([{ url: 'https://example.com' }]);
+      expect(browser.calledTwice).to.be.true;
+    }).timeout(3000);
+
+    it('should kill the browser when browser.close() is taking more than 3 seconds and cleanup files', async () => {
+      const browserMock = {
+        newPage: sinon.stub().resolves({}),
+        goto: sinon.stub().resolves(),
+        waitForSelector: sinon.stub().resolves(),
+        evaluate: sinon.stub().resolves({}),
+        url: sinon.stub().returns('https://example.com'),
+        close: sinon.stub().callsFake(() => new Promise((resolve) => {
+          setTimeout(resolve, 4000);
+        })),
+        process: sinon.stub().returns({
+          spawnargs: ['--user-data-dir=/tmp/test-profile111'],
+          kill: sinon.stub(),
+        }),
+      };
+      const rmSyncStub = sinon.stub(fs, 'rmSync');
+
+      const files = ['core.chromium.12345', 'otherfile.txt'];
+      sinon.stub(fs, 'readdirSync').returns(files);
+
+      sinon.stub(puppeteer, 'launch').resolves(browserMock);
+      sinon.stub(chromium, 'executablePath').resolves('/path/to/chromium');
+
+      try {
+        await handler.processUrl({ url: 'https://example.com' });
+      } catch (e) {
+        // Expected to throw due to the timeout
+      }
+
+      expect(mockServices.log.error.calledWithMatch('Error closing browser: Close timeout')).to.be.true;
+      expect(browserMock.process().kill.called).to.be.true;
+      expect(rmSyncStub.firstCall.args[0]).to.equal('/tmp/test-profile111');
+      expect(rmSyncStub.secondCall.args[0]).to.equal('/tmp/core.chromium.12345');
+    }).timeout(6000);
+
+    it('should re-throw error if browser.close() throws an error other than "Close timeout"', async () => {
+      const browserMock = {
+        newPage: sinon.stub().resolves({}),
+        goto: sinon.stub().resolves(),
+        waitForSelector: sinon.stub().resolves(),
+        evaluate: sinon.stub().resolves({}),
+        url: sinon.stub().returns('https://example.com'),
+        close: sinon.stub().rejects(new Error('Some other error')),
+        process: sinon.stub().returns({
+          spawnargs: ['--user-data-dir=/tmp/test-profile'],
+          kill: sinon.stub(),
+        }),
+      };
+
+      sinon.stub(puppeteer, 'launch').resolves(browserMock);
+      sinon.stub(chromium, 'executablePath').resolves('/path/to/chromium');
+
+      try {
+        await handler.processUrl({ url: 'https://example.com' });
+      } catch (e) {
+        expect(e.message).to.equal('Some other error');
+      }
+
+      expect(mockServices.log.error.calledWithMatch('Error closing browser: Some other error')).to.be.true;
+      expect(browserMock.process().kill.called).to.be.false;
     });
 
     it('sets options', async () => {
@@ -298,25 +390,21 @@ describe('AbstractHandler', () => {
       const importHandler = new TestHandler('import', mockConfig, mockServices);
       const options = { pageLoadTimeout: 10, enableJavascript: false };
 
-      await importHandler.process({ url: 'https://example.com' }, options);
+      await importHandler.process([{ url: 'https://example.com' }], options);
 
       expect(mockPage.setJavaScriptEnabled.calledWith(false)).to.be.true;
       expect(mockPage.goto.calledWith('https://example.com', { waitUntil: 'networkidle2', timeout: 10 })).to.be.true;
     });
-  });
 
-  describe('Error Handling', () => {
-    it('logs and sends a Slack message on processing error', async () => {
-      const error = new Error('Test error');
-      sinon.stub(puppeteer, 'launch').rejects(error);
+    it('returns error if s3 throws an error', async () => {
+      mockServices.s3Client.send = sinon.stub().rejects(new Error('Test error'));
+      const pageStub = createPageStub({ data: 'scraped data' });
+      createBrowserStub(pageStub);
 
-      try {
-        await handler.process({ url: 'https://example.com' });
-      } catch (e) {
-        expect(e).to.equal(error);
-        expect(mockServices.log.error.calledWith('[TestHandler] Failed to process', error)).to.be.true;
-        expect(mockServices.slackClient.postMessage.calledTwice).to.be.true;
-      }
+      const results = await handler.process([{ url: 'https://example.com' }]);
+
+      expect(results.length).to.equal(1);
+      expect(results[0].error).to.deep.equal('Test error');
     });
   });
 
@@ -326,15 +414,16 @@ describe('AbstractHandler', () => {
 
       createBrowserStub(createPageStub(scrapeResult));
 
-      const result = await handler.process({ url: 'https://example.com' });
+      const results = await handler.process([{ url: 'https://example.com' }]);
 
       expect(mockServices.s3Client.send.calledOnce).to.be.true;
-      expect(result.finalUrl).to.equal('https://example.com');
-      expect(result.scrapeTime).to.be.a('number');
-      expect(result.scrapedAt).to.be.a('number');
-      expect(result.location).to.equal('scrapes/test-job-id/scrape.json');
-      expect(result.userAgent).to.equal('test-user-agent');
-      expect(result.scrapeResult).to.deep.equal(scrapeResult);
+      expect(results.length).to.equal(1);
+      expect(results[0].finalUrl).to.equal('https://example.com');
+      expect(results[0].scrapeTime).to.be.a('number');
+      expect(results[0].scrapedAt).to.be.a('number');
+      expect(results[0].location).to.equal('scrapes/test-job-id/scrape.json');
+      expect(results[0].userAgent).to.equal('test-user-agent');
+      expect(results[0].scrapeResult).to.deep.equal(scrapeResult);
       expect(mockServices.s3Client.send.calledOnce).to.be.true;
     });
   });
