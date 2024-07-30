@@ -1,3 +1,10 @@
+# [1.7.0](https://github.com/adobe/spacecat-content-scraper/compare/v1.6.11...v1.7.0) (2024-07-30)
+
+
+### Features
+
+* introduce concurrent multi url scraping and markdown handler ([#98](https://github.com/adobe/spacecat-content-scraper/issues/98)) ([1f9cfb0](https://github.com/adobe/spacecat-content-scraper/commit/1f9cfb06487a14d7b103cd0aca36b44aec92367e))
+
 ## [1.6.11](https://github.com/adobe/spacecat-content-scraper/compare/v1.6.10...v1.6.11) (2024-07-28)
 
 
