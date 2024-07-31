@@ -18,7 +18,7 @@ import sinon from 'sinon';
 import puppeteer from 'puppeteer-extra';
 
 import { GetObjectCommand, PutObjectCommand } from '@aws-sdk/client-s3';
-import MarkdownHandler from '../../src/handlers/markdown-handler.js';
+import TextContentHandler from '../../src/handlers/text-content-handler.js';
 
 chai.use(chaiAsPromised);
 
@@ -47,7 +47,7 @@ const createPageStub = (scrapeResults = {}, url = 'https://example.com') => ({
   isClosed: sinon.stub().returns(false),
 });
 
-describe('MarkdownHandler', () => {
+describe('TextContentHandler', () => {
   let handler;
   let mockConfig;
   let mockServices;
@@ -91,7 +91,7 @@ describe('MarkdownHandler', () => {
       },
     };
 
-    handler = new MarkdownHandler(mockConfig, mockServices);
+    handler = new TextContentHandler(mockConfig, mockServices);
   });
 
   afterEach(() => {
@@ -106,13 +106,13 @@ describe('MarkdownHandler', () => {
     const results = await handler.process([{ url: 'https://example.com' }, { url: 'https://example.com/path' }]);
 
     expect(results.length).to.equal(2);
-    expect(results[0].location).to.equal('imports/test-job-id/markdown/.md');
-    expect(results[1].location).to.equal('imports/test-job-id/markdown/path.md');
+    expect(results[0].location).to.equal('imports/test-job-id/text-content/.txt');
+    expect(results[1].location).to.equal('imports/test-job-id/text-content/path.txt');
   }).timeout(3000);
 });
 
 describe('accepts', () => {
   it('returns true for a subclass that implements the method', () => {
-    expect(MarkdownHandler.accepts('markdown')).to.be.true;
+    expect(TextContentHandler.accepts('text-content')).to.be.true;
   });
 });

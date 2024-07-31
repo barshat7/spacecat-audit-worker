@@ -14,15 +14,15 @@ import path from 'path';
 import AbstractHandler from './abstract-handler.js';
 
 /**
- * Markdown handler, implements abstract handler with markdown processing.
+ * Text content handler, implements abstract handler that saves text content to storage.
  * @extends AbstractHandler
  */
-class MarkdownHandler extends AbstractHandler {
-  static handlerName = 'markdown';
+class TextContentHandler extends AbstractHandler {
+  static handlerName = 'text-content';
 
   constructor(config, services) {
     super(
-      MarkdownHandler.handlerName,
+      TextContentHandler.handlerName,
       config,
       services,
     );
@@ -35,27 +35,26 @@ class MarkdownHandler extends AbstractHandler {
    * @return {boolean} True if the processing type is supported.
    */
   static accepts(processingType) {
-    return processingType === MarkdownHandler.handlerName;
+    return processingType === TextContentHandler.handlerName;
   }
 
   async getStoragePath() {
-    return path.join(`imports/${this.config.jobId}/markdown`, `${this.importPath}.md`);
+    return path.join(`imports/${this.config.jobId}/text-content`, `${this.importPath}.txt`);
   }
 
   // eslint-disable-next-line class-methods-use-this
   getStorageConfig() {
     return {
-      contentType: 'text/markdown',
+      contentType: 'text/plain',
     };
   }
 
-  // eslint-disable-next-line class-methods-use-this
   async transformScrapeResult(result) {
-    const { textContent: md } = result.scrapeResult;
+    const { textContent: text } = result.scrapeResult;
 
     this.importPath = new URL(result.finalUrl).pathname;
-    return md;
+    return text;
   }
 }
 
-export default MarkdownHandler;
+export default TextContentHandler;

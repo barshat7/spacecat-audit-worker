@@ -31,14 +31,14 @@ import {
 
 import DefaultHandler from './handlers/default-handler.js';
 import ImportHandler from './handlers/import-handler.js';
-import MarkdownHandler from './handlers/markdown-handler.js';
+import TextContentHandler from './handlers/text-content-handler.js';
 import runSQS from './run-sqs.js';
 import runHTTP from './run-http.js';
 
 const handlerList = [
   DefaultHandler,
   ImportHandler,
-  MarkdownHandler,
+  TextContentHandler,
 ];
 
 export const handlerProvider = (fn) => async (req, context) => {
