@@ -426,6 +426,63 @@ describe('AbstractHandler', () => {
       expect(results[0].scrapeResult).to.deep.equal(scrapeResult);
       expect(mockServices.s3Client.send.calledOnce).to.be.true;
     });
+    it('skips storage if config.skipStorage is set to true', async () => {
+      const scrapeResult = { data: 'scraped data' };
+
+      createBrowserStub(createPageStub(scrapeResult));
+
+      const handlerWithSkipStorage = new TestHandler('TestHandler', { ...mockConfig, skipStorage: true }, mockServices);
+      const results = await handlerWithSkipStorage.process([{ url: 'https://example.com' }]);
+
+      expect(results.length).to.equal(1);
+      expect(results[0].location).to.be.null;
+      expect(mockServices.s3Client.send.called).to.be.false;
+      expect(mockServices.log.info.calledWith('[TestHandler] Skipping storage by config')).to.be.true;
+    });
+  });
+
+  describe('Messaging', () => {
+    it('sends sqs message with scrape result', async () => {
+      const scrapeResult = { data: 'scraped data' };
+
+      createBrowserStub(createPageStub(scrapeResult));
+
+      await handler.process([{ url: 'https://example.com' }]);
+
+      expect(mockServices.sqsClient.sendMessage.calledOnce).to.be.true;
+      expect(mockServices.sqsClient.sendMessage.firstCall.args[0]).to.equal('https://sqs.test.com/queue');
+      expect(mockServices.sqsClient.sendMessage.firstCall.args[1]).to.eql({
+        jobId: 'test-job-id',
+        processingType: 'TestHandler',
+        slackContext: {
+          threadTs: '12345.67890',
+          channelId: 'C12345678',
+        },
+        scrapeResults: [
+          {
+            location: 'scrapes/test-job-id/scrape.json',
+            metadata: {
+              path: undefined,
+              urlId: undefined,
+              url: 'https://example.com',
+              status: 'COMPLETE',
+            },
+          },
+        ],
+      });
+    });
+
+    it('skips messaging if config.skipMessage is set to true', async () => {
+      const scrapeResult = { data: 'scraped data' };
+
+      createBrowserStub(createPageStub(scrapeResult));
+
+      const handlerWithSkipMessage = new TestHandler('TestHandler', { ...mockConfig, skipMessage: true }, mockServices);
+      await handlerWithSkipMessage.process([{ url: 'https://example.com' }]);
+
+      expect(mockServices.sqsClient.sendMessage.called).to.be.false;
+      expect(mockServices.log.info.calledWith('[TestHandler] Skipping completion message by config')).to.be.true;
+    });
   });
 
   describe('accepts', () => {

@@ -10,7 +10,7 @@
  * governing permissions and limitations under the License.
  */
 
-import { hasText, isObject } from '@adobe/spacecat-shared-utils';
+import { hasText, isObject, isValidUrl } from '@adobe/spacecat-shared-utils';
 
 /**
  * Send a message to a Slack channel. If the message is a reply, it will be sent as a thread.
@@ -33,4 +33,58 @@ export async function sendSlackMessage(slackClient, slackContext, message) {
       unfurl_links: false,
     });
   }
+}
+
+/**
+ * Send a message to an SQS queue. The message must be a valid object.
+ * The queue URL must be a valid URL. The SQS client must be a valid object.
+ * If any of these conditions are not met, the function will return early.
+ * @param {object} sqsClient - The SQS client object.
+ * @param {string} queueUrl - The URL of the SQS queue.
+ * @param {object} message - The message to send.
+ * @return {Promise<void>} - A promise that resolves when the message is sent.
+ */
+export async function sendSQSMessage(sqsClient, queueUrl, message) {
+  if (!isObject(sqsClient) || !isValidUrl(queueUrl) || !isObject(message)) {
+    return;
+  }
+  await sqsClient.sendMessage(queueUrl, message);
+}
+
+/**
+ * Selects the appropriate handler for the given processing type.
+ * If no handler is found, returns null.
+ * @param {object} context - The context object.
+ * @param {Array} handlers - The array of handler classes.
+ * @param {object} services - The services object.
+ * @param {object} config - The configuration object.
+ * @param {string} processingType - The processing type.
+ * @return {*|null} - The handler object.
+ * @throws {Error} - If no handler is found.
+ */
+export function selectHandler(context, handlers, services, config, processingType) {
+  const handlerConfigs = JSON.parse(context.env.HANDLER_CONFIGS);
+  for (const Handler of handlers) {
+    if (Handler.accepts(processingType)) {
+      const handlerConfig = handlerConfigs[Handler.handlerName];
+
+      if (!isObject(handlerConfig)) {
+        throw new Error(`Missing handler configuration for ${Handler.handlerName}`);
+      }
+
+      return new Handler(
+        {
+          ...config,
+          /**
+           * Handler-specific configuration:
+           * - completionQueueUrl
+           * - s3BucketName
+           */
+          ...handlerConfig,
+        },
+        services,
+      );
+    }
+  }
+  throw new Error(`No handler found for processingType: ${processingType}`);
 }

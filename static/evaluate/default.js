@@ -19,10 +19,10 @@ const evalFn = () => {
       throw new Error('No body element found');
     }
 
-    const elementsToRemove = body.querySelectorAll('picture, svg, img, object, video, embed, iframe, audio, frame, script, link, meta, style');
+    const elementsToRemove = body.querySelectorAll('iframe, frame, script, link, meta, style');
     elementsToRemove.forEach((el) => el.remove());
 
-    const rawBody = body.innerHTML;
+    const rawBody = body.innerHTML.replace(/\n/g, '');;
 
     if (!rawBody) {
       throw new Error('No innerHTML found in body element');

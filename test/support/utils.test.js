@@ -14,7 +14,7 @@
 
 import { expect } from 'chai';
 import sinon from 'sinon';
-import { sendSlackMessage } from '../../src/support/utils.js';
+import { selectHandler, sendSlackMessage, sendSQSMessage } from '../../src/support/utils.js';
 
 describe('utils.js', () => {
   describe('sendSlackMessage', () => {
@@ -71,6 +71,61 @@ describe('utils.js', () => {
       slackContext.channelId = '';
       await sendSlackMessage(slackClient, slackContext, 'Test message');
       expect(slackClient.postMessage.called).to.be.false;
+    });
+  });
+
+  describe('sendSQSMessage', () => {
+    let sqsClient;
+    let queueUrl;
+    let message;
+
+    beforeEach(() => {
+      sqsClient = {
+        sendMessage: sinon.stub().resolves(),
+      };
+      queueUrl = 'https://sqs.us-east-1.amazonaws.com/123456789012/MyQueue';
+      message = { foo: 'bar' };
+    });
+
+    afterEach(() => {
+      sinon.restore();
+    });
+
+    it('does nothing if sqsClient is not an object', async () => {
+      await sendSQSMessage(null, queueUrl, message);
+      expect(sqsClient.sendMessage.called).to.be.false;
+    });
+
+    it('does nothing if queueUrl is not a valid URL', async () => {
+      await sendSQSMessage(sqsClient, 'invalid-url', message);
+      expect(sqsClient.sendMessage.called).to.be.false;
+    });
+
+    it('does nothing if message is not an object', async () => {
+      await sendSQSMessage(sqsClient, queueUrl, null);
+      expect(sqsClient.sendMessage.called).to.be.false;
+    });
+
+    it('sends a message to SQS when all parameters are valid', async () => {
+      await sendSQSMessage(sqsClient, queueUrl, message);
+      expect(sqsClient.sendMessage.calledOnce).to.be.true;
+      expect(sqsClient.sendMessage.calledWith('https://sqs.us-east-1.amazonaws.com/123456789012/MyQueue', { foo: 'bar' })).to.be.true;
+    });
+  });
+
+  describe('selectHandler', () => {
+    it('throws an error if no handler is found', () => {
+      const context = {
+        env: {
+          HANDLER_CONFIGS: '{}',
+        },
+      };
+      const handlers = [];
+      const services = {};
+      const config = {};
+      const processingType = 'desktop';
+
+      expect(() => selectHandler(context, handlers, services, config, processingType)).to.throw('No handler found for processingType: desktop');
     });
   });
 });

@@ -10,27 +10,31 @@
  * governing permissions and limitations under the License.
  */
 
-// eslint-disable-next-line import/no-extraneous-dependencies
-import { KnownDevices } from 'puppeteer-core';
-
 import AbstractHandler from './abstract-handler.js';
 
-const iPhone13Pro = KnownDevices['iPhone 13 Pro'];
-
-class ExperimentationCandidatesMobileHandler extends AbstractHandler {
-  static handlerName = 'experimentation-candidates-mobile';
+/**
+ * Default handler, implements abstract handler with no adjustments.
+ * @extends AbstractHandler
+ */
+class DefaultHandler extends AbstractHandler {
+  static handlerName = 'default';
 
   constructor(config, services) {
     super(
-      ExperimentationCandidatesMobileHandler.handlerName,
-      { ...config, device: iPhone13Pro },
+      DefaultHandler.handlerName,
+      config,
       services,
     );
   }
 
+  /**
+   * Check if the processing type is supported.
+   * @param {string} processingType - Processing type.
+   * @return {boolean} True if the processing type is supported.
+   */
   static accepts(processingType) {
-    return processingType === ExperimentationCandidatesMobileHandler.handlerName;
+    return processingType === DefaultHandler.handlerName;
   }
 }
 
-export default ExperimentationCandidatesMobileHandler;
+export default DefaultHandler;

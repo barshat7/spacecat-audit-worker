@@ -10,32 +10,38 @@
  * governing permissions and limitations under the License.
  */
 
+import { S3Client } from '@aws-sdk/client-s3';
 import wrap from '@adobe/helix-shared-wrap';
+import bodyData from '@adobe/helix-shared-body-data';
 import secrets from '@adobe/helix-shared-secrets';
 import { helixStatus } from '@adobe/helix-status';
-import { internalServerError, noContent } from '@adobe/spacecat-shared-http-utils';
 import {
-  hasText, isObject, resolveSecretsName, sqsEventAdapter, sqsWrapper,
+  authWrapper,
+  enrichPathInfo,
+  AdobeImsHandler,
+  LegacyApiKeyHandler,
+} from '@adobe/spacecat-shared-http-utils';
+import { BaseSlackClient, SLACK_TARGETS } from '@adobe/spacecat-shared-slack-client';
+import {
+  isObject,
+  resolveSecretsName,
+  sqsEventAdapter,
+  sqsWrapper,
 } from '@adobe/spacecat-shared-utils';
 
-import { v4 as uuidv4 } from 'uuid';
-
-import { S3Client } from '@aws-sdk/client-s3';
-import { BaseSlackClient, SLACK_TARGETS } from '@adobe/spacecat-shared-slack-client';
-
-import ExperimentationCandidatesDesktopHandler from './handlers/experimentation-candidates-desktop-handler.js';
-import ExperimentationCandidatesMobileHandler from './handlers/experimentation-candidates-mobile-handler.js';
+import DefaultHandler from './handlers/default-handler.js';
 import ImportHandler from './handlers/import-handler.js';
 import MarkdownHandler from './handlers/markdown-handler.js';
+import runSQS from './run-sqs.js';
+import runHTTP from './run-http.js';
 
 const handlerList = [
-  ExperimentationCandidatesDesktopHandler,
-  ExperimentationCandidatesMobileHandler,
+  DefaultHandler,
   ImportHandler,
   MarkdownHandler,
 ];
 
-const handlerProvider = (fn) => async (req, context) => {
+export const handlerProvider = (fn) => async (req, context) => {
   context.attributes = context.attributes || {};
   if (!Array.isArray(context.attributes.handlers) || context.attributes.handlers.length === 0) {
     context.attributes.handlers = handlerList;
@@ -43,88 +49,42 @@ const handlerProvider = (fn) => async (req, context) => {
   return fn(req, context);
 };
 
-const validateInput = (processingType, urls) => {
-  if (!hasText(processingType)) {
-    throw new Error('Missing processingType');
+const serviceProvider = (fn) => async (req, context) => {
+  context.attributes = context.attributes || {};
+  if (!isObject(context.attributes.services)) {
+    context.attributes.services = {
+      log: context.log,
+      s3Client: new S3Client(),
+      slackClient: BaseSlackClient.createFrom(
+        context,
+        SLACK_TARGETS.WORKSPACE_INTERNAL,
+      ),
+      sqsClient: context.sqs,
+    };
   }
-  if (!Array.isArray(urls) || urls.length === 0) {
-    throw new Error('Missing URLs');
-  }
+  return fn(req, context);
 };
 
-async function run(message, context) {
-  const { log, sqs: sqsClient, attributes } = context;
-  const { handlers } = attributes;
-  const {
-    jobId = uuidv4(),
-    options = {},
-    processingType,
-    slackContext = {},
-    urls,
-  } = message;
-
-  try {
-    validateInput(processingType, urls);
-
-    // set up service dependencies
-    const s3Client = new S3Client();
-    const slackClient = BaseSlackClient.createFrom(
-      context,
-      SLACK_TARGETS.WORKSPACE_INTERNAL,
-    );
-
-    const config = {
-      jobId,
-      slackContext,
-    };
-
-    const services = {
-      log,
-      s3Client,
-      slackClient,
-      sqsClient,
-    };
-
-    const handlerConfigs = JSON.parse(context.env.HANDLER_CONFIGS);
-
-    for (const Handler of handlers) {
-      if (Handler.accepts(processingType)) {
-        const handlerConfig = handlerConfigs[Handler.handlerName];
-
-        if (!isObject(handlerConfig)) {
-          throw new Error(`Missing handler configuration for ${Handler.handlerName}`);
-        }
-        const handler = new Handler(
-          {
-            ...config,
-            /**
-             * Handler-specific configuration:
-             * - completionQueueUrl
-             * - s3BucketName
-             */
-            ...handlerConfig,
-          },
-          services,
-        );
-        try {
-          // we want sequential processing for now
-          // eslint-disable-next-line no-await-in-loop
-          await handler.process(urls, options);
-        } catch (e) {
-          log.error(`Error for handler ${Handler.handlerName}: ${e.message}`, e);
-        }
-      }
-    }
-    return noContent();
-  } catch (e) {
-    log.error(`Error scraping URL: ${e}`);
-    return internalServerError(e.message);
-  }
-}
-
-export const main = wrap(run)
+export const wrapSQS = wrap(runSQS)
   .with(handlerProvider)
+  .with(serviceProvider)
   .with(sqsEventAdapter)
   .with(sqsWrapper)
   .with(secrets, { name: resolveSecretsName })
   .with(helixStatus);
+
+export const wrapHTTP = wrap(runHTTP)
+  .with(handlerProvider)
+  .with(serviceProvider)
+  .with(authWrapper, { authHandlers: [LegacyApiKeyHandler, AdobeImsHandler] })
+  .with(enrichPathInfo)
+  .with(bodyData)
+  .with(sqsWrapper)
+  .with(secrets, { name: resolveSecretsName })
+  .with(helixStatus);
+
+export const main = async (event, context) => {
+  const isSQSEvent = Array.isArray(context.invocation?.event?.Records);
+  const handler = isSQSEvent ? wrapSQS : wrapHTTP;
+  return handler(event, context);
+};

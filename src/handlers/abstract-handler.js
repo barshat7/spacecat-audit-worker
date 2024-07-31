@@ -32,7 +32,7 @@ import AdblockerPlugin from 'puppeteer-extra-plugin-adblocker';
 import fs from 'fs';
 import path from 'path';
 
-import { sendSlackMessage } from '../support/utils.js';
+import { sendSlackMessage, sendSQSMessage } from '../support/utils.js';
 
 puppeteer.use(StealthPlugin());
 puppeteer.use(AdblockerPlugin({ blockTrackers: true }));
@@ -51,6 +51,8 @@ class AbstractHandler {
    * @param {Object} config.s3BucketName - The S3 bucket name.
    * @param {Object} config.completionQueueUrl - The SQS completion queue URL.
    * @param {Object} config.slackContext - The Slack context object.
+   * @param {Object} config.skipMessage - Whether to skip sending the completion message.
+   * @param {Object} config.skipStorage - Whether to skip storing the scraped content.
    * @param {Object} config.device - The device to emulate.
    * @param {Object} services - The services required by the handler.
    * @param {Object} services.log - Logging service.
@@ -87,7 +89,13 @@ class AbstractHandler {
     if (!isObject(this.config)) {
       throw new Error('Invalid configuration: config should be an object');
     }
-    const requiredFields = ['jobId', 's3BucketName', 'completionQueueUrl'];
+    const requiredFields = ['jobId'];
+    if (!this.config.skipStorage) {
+      requiredFields.push('s3BucketName');
+    }
+    if (!this.config.skipMessage) {
+      requiredFields.push('completionQueueUrl');
+    }
     requiredFields.forEach((field) => {
       if (!hasText(this.config[field])) {
         throw new Error(`Invalid configuration: ${field} is required`);
@@ -121,7 +129,7 @@ class AbstractHandler {
    * @param {Error} [error] - Optional error object to log.
    */
   #log(level, message, error) {
-    const logMessage = `[${this.handlerName}] ${message}`;
+    const logMessage = `[${this.getName()}] ${message}`;
     if (error) {
       this.log[level](logMessage, error);
     } else {
@@ -136,7 +144,7 @@ class AbstractHandler {
    */
   #getScriptPath() {
     const defaultScriptPath = path.resolve('./static/evaluate/default.js');
-    const handlerScriptPath = path.resolve(`./static/evaluate/${this.handlerName}.js`);
+    const handlerScriptPath = path.resolve(`./static/evaluate/${this.getName()}.js`);
     return fs.existsSync(handlerScriptPath) ? handlerScriptPath : defaultScriptPath;
   }
 
@@ -146,7 +154,7 @@ class AbstractHandler {
    * @returns {string} The path to the script.
    */
   #getPageInjectCode() {
-    const handlerScriptPath = path.resolve(`./static/inject/${this.handlerName}.js`);
+    const handlerScriptPath = path.resolve(`./static/inject/${this.getName()}.js`);
     if (fs.existsSync(handlerScriptPath)) {
       return fs.readFileSync(handlerScriptPath, 'utf8');
     }
@@ -227,6 +235,14 @@ class AbstractHandler {
     this.browser = null;
     // delete browser profile directory and all its contents
     this.#cleanupTmpFiles(browserProfileDir, '/tmp');
+  }
+
+  /**
+   * Gets the name of the handler.
+   * @return {string} The handler name.
+   */
+  getName() {
+    return this.handlerName;
   }
 
   /**
@@ -343,11 +359,16 @@ class AbstractHandler {
    * @private
    * @param {Object} content - The content to store.
    * @param {Object} options - The storage options.
-   * @returns {Promise<string>} The S3 path where the content was stored.
+   * @returns {Promise<string>} The S3 path where the content was stored or null if skipped.
    * @throws Will throw an error if storing fails.
    */
   // eslint-disable-next-line no-unused-vars
   async #store(content, options) {
+    if (this.config.skipStorage) {
+      this.#log('info', 'Skipping storage by config');
+      return null;
+    }
+
     const storageConfig = this.getStorageConfig();
     const filePath = await this.getStoragePath();
 
@@ -372,7 +393,7 @@ class AbstractHandler {
    */
   async onProcessingStart(urlsData) {
     this.#log('info', `Processing ${urlsData.length} URLs`);
-    await sendSlackMessage(this.slackClient, this.config.slackContext, `Starting scrape of ${urlsData.length} URLs [${this.handlerName}]`);
+    await sendSlackMessage(this.slackClient, this.config.slackContext, `Starting scrape of ${urlsData.length} URLs [${this.getName()}]`);
   }
 
   /**
@@ -381,7 +402,12 @@ class AbstractHandler {
    * @param {Array} results - The results of the processing.
    */
   async onProcessingComplete(results) {
-    this.#log('info', `[${this.handlerName}] Scrape complete. Scraped ${results.length} URLs. Failed to scrape ${results.filter((result) => result.error).length} URLs.`);
+    this.#log('info', `[${this.getName()}] Scrape complete. Scraped ${results.length} URLs. Failed to scrape ${results.filter((result) => result.error).length} URLs.`);
+
+    if (this.config.skipMessage) {
+      this.#log('info', 'Skipping completion message by config');
+      return;
+    }
 
     const completedMessage = {
       jobId: this.config.jobId,
@@ -410,7 +436,7 @@ class AbstractHandler {
       }),
     };
 
-    await this.sqsClient.sendMessage(this.config.completionQueueUrl, completedMessage);
+    await sendSQSMessage(this.sqsClient, this.config.completionQueueUrl, completedMessage);
     await sendSlackMessage(this.slackClient, this.config.slackContext, `Scrape complete. Scraped ${results.length} URLs. Failed to scrape ${results.filter((result) => result.error).length} URLs [${this.handlerName}]`);
   }
 

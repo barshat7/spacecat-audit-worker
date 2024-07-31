@@ -16,9 +16,9 @@ import { expect } from 'chai';
 import sinon from 'sinon';
 
 import AbstractHandler from '../../src/handlers/abstract-handler.js';
-import ExperimentationCandidatesMobileHandler from '../../src/handlers/experimentation-candidates-mobile-handler.js';
+import DefaultHandler from '../../src/handlers/default-handler.js';
 
-describe('ExperimentationCandidatesMobileHandler', () => {
+describe('DefaultHandler', () => {
   let handler;
   let mockConfig;
   let mockServices;
@@ -47,7 +47,7 @@ describe('ExperimentationCandidatesMobileHandler', () => {
       },
     };
 
-    handler = new ExperimentationCandidatesMobileHandler(mockConfig, mockServices);
+    handler = new DefaultHandler(mockConfig, mockServices);
   });
 
   afterEach(() => {
@@ -55,17 +55,17 @@ describe('ExperimentationCandidatesMobileHandler', () => {
   });
 
   describe('constructor', () => {
-    it('should create an instance of ExperimentationCandidatesMobileHandler', () => {
-      expect(handler).to.be.instanceOf(ExperimentationCandidatesMobileHandler);
-      expect(handler.handlerName).to.equal('experimentation-candidates-mobile');
+    it('creates an instance of DefaultHandler', () => {
+      expect(handler).to.be.instanceOf(DefaultHandler);
+      expect(handler.handlerName).to.equal('default');
     });
 
-    it('should inherit from AbstractHandler', () => {
+    it('inherits from AbstractHandler', () => {
       expect(handler).to.be.instanceOf(AbstractHandler);
     });
 
-    it('should validate config and services', () => {
-      expect(() => new ExperimentationCandidatesMobileHandler(
+    it('validates config and services', () => {
+      expect(() => new DefaultHandler(
         mockConfig,
         mockServices,
       )).to.not.throw();
@@ -73,12 +73,12 @@ describe('ExperimentationCandidatesMobileHandler', () => {
   });
 
   describe('accepts', () => {
-    it('should return true for matching processing type', () => {
-      expect(ExperimentationCandidatesMobileHandler.accepts('experimentation-candidates-mobile')).to.be.true;
+    it('returns true for matching processing type', () => {
+      expect(DefaultHandler.accepts('default')).to.be.true;
     });
 
-    it('should return false for non-matching processing type', () => {
-      expect(ExperimentationCandidatesMobileHandler.accepts('non-matching-type')).to.be.false;
+    it('returns false for non-matching processing type', () => {
+      expect(DefaultHandler.accepts('non-matching-type')).to.be.false;
     });
   });
 });
