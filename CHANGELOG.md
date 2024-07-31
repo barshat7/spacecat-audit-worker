@@ -1,3 +1,10 @@
+# [1.8.0](https://github.com/adobe/spacecat-content-scraper/compare/v1.7.1...v1.8.0) (2024-07-31)
+
+
+### Features
+
+* trigger via HTTP and SQS ([#110](https://github.com/adobe/spacecat-content-scraper/issues/110)) ([8e3e80c](https://github.com/adobe/spacecat-content-scraper/commit/8e3e80c294cd3a6dea2a3caf7ac855170e0d67ca))
+
 ## [1.7.1](https://github.com/adobe/spacecat-content-scraper/compare/v1.7.0...v1.7.1) (2024-07-30)
 
 
