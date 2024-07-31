@@ -1,3 +1,10 @@
+# [1.9.0](https://github.com/adobe/spacecat-content-scraper/compare/v1.8.0...v1.9.0) (2024-07-31)
+
+
+### Features
+
+* rename markdown handler to text-content handler to avoid confusion ([#112](https://github.com/adobe/spacecat-content-scraper/issues/112)) ([a21505f](https://github.com/adobe/spacecat-content-scraper/commit/a21505f59f1da545e928cbe525e0814b0e7a62aa))
+
 # [1.8.0](https://github.com/adobe/spacecat-content-scraper/compare/v1.7.1...v1.8.0) (2024-07-31)
 
 
