@@ -416,11 +416,11 @@ class AbstractHandler {
       scrapeResults: results.map((result) => {
         if (result.error) {
           return {
-            error: result.error,
             metadata: {
               url: result.url,
               urlId: result.urlId,
-              status: 'ERROR',
+              status: 'FAILED',
+              reason: result.error,
             },
           };
         }
