@@ -1,3 +1,10 @@
+## [1.9.1](https://github.com/adobe/spacecat-content-scraper/compare/v1.9.0...v1.9.1) (2024-08-01)
+
+
+### Bug Fixes
+
+* Increase resilience of the content-scraper to ensure that it always sends a result message for each URL ([#108](https://github.com/adobe/spacecat-content-scraper/issues/108)) ([522ee1e](https://github.com/adobe/spacecat-content-scraper/commit/522ee1ec551d20f38d2bc7da6f9a3d10143c3971))
+
 # [1.9.0](https://github.com/adobe/spacecat-content-scraper/compare/v1.8.0...v1.9.0) (2024-07-31)
 
 
