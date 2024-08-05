@@ -22,10 +22,10 @@ const evalFn = () => {
     const elementsToRemove = body.querySelectorAll('iframe, frame, script, link, meta, style');
     elementsToRemove.forEach((el) => el.remove());
 
-    const rawBody = body.innerHTML.replace(/\n/g, '');;
+    const rawBody = body.outerHTML.replace(/\n/g, '');;
 
     if (!rawBody) {
-      throw new Error('No innerHTML found in body element');
+      throw new Error('No outerHTML found in body element');
     }
 
     let textContent = body.textContent || '';
