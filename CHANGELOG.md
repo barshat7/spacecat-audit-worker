@@ -1,3 +1,11 @@
+## [1.9.3](https://github.com/adobe/spacecat-content-scraper/compare/v1.9.2...v1.9.3) (2024-08-06)
+
+
+### Bug Fixes
+
+* **deps:** update adobe fixes ([#117](https://github.com/adobe/spacecat-content-scraper/issues/117)) ([6beccb1](https://github.com/adobe/spacecat-content-scraper/commit/6beccb1cb8050d90343dd57ea91484501634d873))
+* use outerhtml instead of innerhtml ([#116](https://github.com/adobe/spacecat-content-scraper/issues/116)) ([1e8638d](https://github.com/adobe/spacecat-content-scraper/commit/1e8638d4213539d45dadfa9bcb5536b83aa4e74e))
+
 ## [1.9.2](https://github.com/adobe/spacecat-content-scraper/compare/v1.9.1...v1.9.2) (2024-08-03)
 
 
