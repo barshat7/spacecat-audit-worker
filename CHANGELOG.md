@@ -1,3 +1,10 @@
+## [1.9.4](https://github.com/adobe/spacecat-content-scraper/compare/v1.9.3...v1.9.4) (2024-08-09)
+
+
+### Bug Fixes
+
+* **deps:** update dependency @adobe/spacecat-shared-http-utils to v1.5.0 ([#119](https://github.com/adobe/spacecat-content-scraper/issues/119)) ([3cfb958](https://github.com/adobe/spacecat-content-scraper/commit/3cfb958ede3ec2011b46fcbf03be725aa9c8e89c))
+
 ## [1.9.3](https://github.com/adobe/spacecat-content-scraper/compare/v1.9.2...v1.9.3) (2024-08-06)
 
 
