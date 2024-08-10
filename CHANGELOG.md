@@ -1,3 +1,10 @@
+## [1.9.5](https://github.com/adobe/spacecat-content-scraper/compare/v1.9.4...v1.9.5) (2024-08-10)
+
+
+### Bug Fixes
+
+* **deps:** update external fixes ([#120](https://github.com/adobe/spacecat-content-scraper/issues/120)) ([6653155](https://github.com/adobe/spacecat-content-scraper/commit/66531558c9028296623170b64261986b67f95b7d))
+
 ## [1.9.4](https://github.com/adobe/spacecat-content-scraper/compare/v1.9.3...v1.9.4) (2024-08-09)
 
 
