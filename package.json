@@ -104,7 +104,7 @@
     "reporter-options": "configFile=.mocha-multi.json"
   },
   "dependencies": {
-    "@adobe/helix-md2docx": "2.1.69",
+    "@adobe/helix-md2docx": "2.1.70",
     "@adobe/helix-shared-body-data": "2.1.5",
     "@adobe/helix-shared-secrets": "2.2.8",
     "@adobe/helix-shared-wrap": "2.0.2",
