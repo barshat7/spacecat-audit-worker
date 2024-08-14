@@ -1,3 +1,10 @@
+# [1.10.0](https://github.com/adobe/spacecat-content-scraper/compare/v1.9.6...v1.10.0) (2024-08-14)
+
+
+### Features
+
+* Use client provided import.js script for import ([#118](https://github.com/adobe/spacecat-content-scraper/issues/118)) ([5787e82](https://github.com/adobe/spacecat-content-scraper/commit/5787e8229521cc23affda5f8bafd1096672ceb82)), closes [readme-ov-file#html2](https://github.com/readme-ov-file/issues/html2)
+
 ## [1.9.6](https://github.com/adobe/spacecat-content-scraper/compare/v1.9.5...v1.9.6) (2024-08-13)
 
 
