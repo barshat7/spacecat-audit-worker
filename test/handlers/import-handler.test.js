@@ -19,6 +19,7 @@ import nock from 'nock';
 import puppeteer from 'puppeteer-extra';
 
 import { GetObjectCommand, PutObjectCommand } from '@aws-sdk/client-s3';
+import fs from 'fs';
 import ImportHandler from '../../src/handlers/import-handler.js';
 
 chai.use(chaiAsPromised);
@@ -50,6 +51,7 @@ describe('ImportHandler', () => {
   let handler;
   let mockConfig;
   let mockServices;
+  let mockGetObjectHandler;
 
   beforeEach(() => {
     mockConfig = {
@@ -61,6 +63,11 @@ describe('ImportHandler', () => {
         channelId: 'C12345678',
       },
       device: {},
+    };
+    mockGetObjectHandler = async () => {
+      const error = new Error('The specified key does not exist.');
+      error.name = 'NoSuchKey';
+      return Promise.reject(error);
     };
     mockServices = {
       log: {
@@ -77,9 +84,7 @@ describe('ImportHandler', () => {
           if (command instanceof PutObjectCommand) {
             return Promise.resolve();
           } else if (command instanceof GetObjectCommand) {
-            const error = new Error('The specified key does not exist.');
-            error.name = 'NoSuchKey';
-            return Promise.reject(error);
+            return mockGetObjectHandler(command);
           } else {
             return Promise.reject(new Error('Unsupported command'));
           }
@@ -130,11 +135,12 @@ describe('ImportHandler', () => {
     it('stores the scrape result in S3', async () => {
       const scrapeResult = { data: 'scraped data' };
 
-      createBrowserStub(createPageStub(scrapeResult));
+      const pageStub = createPageStub(scrapeResult);
+      createBrowserStub(pageStub);
 
       const results = await handler.process([{ url: 'https://libre-software.net/image/avif-test/' }]);
 
-      expect(mockServices.s3Client.send.calledOnce).to.be.true;
+      expect(mockServices.s3Client.send.calledTwice).to.be.true;
       expect(results.length).to.equal(1);
       expect(results[0].finalUrl).to.equal('https://libre-software.net/image/avif-test/');
       expect(results[0].scrapeTime).to.be.a('number');
@@ -142,7 +148,8 @@ describe('ImportHandler', () => {
       expect(results[0].location).to.equal('imports/test-job-id/docx/undefined.docx');
       expect(results[0].userAgent).to.equal('test-user-agent');
       expect(results[0].scrapeResult).to.deep.equal(scrapeResult);
-      expect(mockServices.s3Client.send.calledOnce).to.be.true;
+      expect(mockServices.s3Client.send.calledTwice).to.be.true;
+      expect(pageStub.evaluate.callCount).to.equal(2);
     });
   });
 
@@ -154,5 +161,52 @@ describe('ImportHandler', () => {
 
   it('throws an error if the method is not implemented in a subclass', () => {
     expect(ImportHandler.accepts('dummy')).to.be.false;
+  });
+
+  describe('CustomInjectCode', () => {
+    beforeEach(() => {
+      // Override to simulate finding a custom import.js script in S3
+      mockGetObjectHandler = async () => {
+        const fileStream = fs.createReadStream(
+          'test/fixtures/bundled-custom-import-script.js',
+        );
+        return {
+          Body: fileStream,
+        };
+      };
+    });
+
+    it('reads the custom import.js script', async () => {
+      const customInjectCode = await handler.getCustomInjectCode();
+      expect(customInjectCode).to.include('h1.textContent = \'Import as a Service\';');
+    });
+
+    it('should handle a non-NoSuchKey error from S3', async () => {
+      mockGetObjectHandler = async () => {
+        throw new Error('Simulated S3 error');
+      };
+      await expect(handler.getCustomInjectCode()).to.be.rejectedWith(Error, 'Simulated S3 error');
+    });
+
+    it('should inject a import script during scraping', async () => {
+      const scrapeResult = { data: 'scraped data from custom script' };
+
+      const pageStub = createPageStub(scrapeResult);
+      createBrowserStub(pageStub);
+
+      const results = await handler.process([{ url: 'https://libre-software.net/image/avif-test/' }]);
+
+      expect(results.length).to.equal(1);
+      expect(results[0].scrapeResult).to.deep.equal(scrapeResult);
+      expect(mockServices.s3Client.send.calledTwice).to.be.true;
+      expect(pageStub).to.have.property('evaluate');
+
+      // .evaluate(..) should be called once more than earlier tests, since we invoked it with
+      // the custom inject code
+      expect(pageStub.evaluate.callCount).to.equal(3);
+      // [1][0] = [2nd call of the stub][1st argument]
+      expect(pageStub.evaluate.args[1][0]).to.include('const CustomImportScript = (() => {');
+      expect(pageStub.evaluate.args[1][0]).to.include('h1.textContent = \'Import as a Service\';');
+    });
   });
 });

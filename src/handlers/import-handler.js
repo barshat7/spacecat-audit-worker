@@ -16,6 +16,7 @@ import path from 'path';
 // eslint-disable-next-line import/no-extraneous-dependencies
 import sharp from 'sharp';
 
+import { GetObjectCommand } from '@aws-sdk/client-s3';
 import AbstractHandler from './abstract-handler.js';
 
 /**
@@ -23,6 +24,7 @@ import AbstractHandler from './abstract-handler.js';
  */
 
 const DOCX_STYLES_XML_PATH = './static/resources/import/styles.xml';
+const s3KeyPrefix = 'imports';
 
 class ImportHandler extends AbstractHandler {
   static handlerName = 'import';
@@ -36,6 +38,44 @@ class ImportHandler extends AbstractHandler {
 
     this.importPath = null;
     this.urlId = config.urlId;
+  }
+
+  static async #readStreamContents(stream) {
+    return new Promise((resolve, reject) => {
+      const chunks = [];
+      stream.on('data', (chunk) => chunks.push(chunk));
+      stream.on('end', () => resolve(Buffer.concat(chunks).toString('utf-8')));
+      stream.on('error', reject);
+    });
+  }
+
+  /**
+   * In the import case, we first check the S3 bucket for the presence of a client-provided
+   * import.js file. If it exists, stream the contents of the file into a string and return it.
+   * @returns {Promise<string|null>} Either the string contents of the file, or null.
+   */
+  async getCustomInjectCode() {
+    try {
+      // Check for import.js in the S3 bucket
+      const command = new GetObjectCommand({
+        Bucket: this.config.s3BucketName,
+        Key: `${s3KeyPrefix}/${this.config.jobId}/import.js`,
+      });
+      const response = await this.s3Client.send(command);
+
+      // The response.Body is a ReadableStream
+      const importJsFileStream = response.Body;
+      return ImportHandler.#readStreamContents(importJsFileStream);
+    } catch (error) {
+      if (error.name === 'NoSuchKey') {
+        // No custom import.js file found - no-op
+        this.log.info(`There is no import.js file in bucket: ${this.config.s3BucketName} for jobId: ${this.config.jobId}`);
+        return null;
+      } else {
+        this.log.error(`Error retrieving import.js from bucket: ${this.config.s3BucketName} for jobId: ${this.config.jobId}`, error);
+        throw error;
+      }
+    }
   }
 
   // force convert all images to png
@@ -56,7 +96,7 @@ class ImportHandler extends AbstractHandler {
   }
 
   async getStoragePath() {
-    return path.join(`imports/${this.config.jobId}/docx`, `${this.importPath}.docx`);
+    return path.join(`${s3KeyPrefix}/${this.config.jobId}/docx`, `${this.importPath}.docx`);
   }
 
   /* eslint-disable-next-line class-methods-use-this */

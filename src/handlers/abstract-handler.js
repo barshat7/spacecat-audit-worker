@@ -290,6 +290,12 @@ class AbstractHandler {
         await page.evaluate(pageInjectCode);
       }
 
+      // Inject and evaluate custom code, as provided by the handler implementation
+      const customInjectCode = await this.getCustomInjectCode();
+      if (hasText(customInjectCode)) {
+        await page.evaluate(customInjectCode);
+      }
+
       const pageEvalCode = this.#getPageEvalCode();
       const scrapeResult = await page.evaluate(pageEvalCode);
       const endScrape = Date.now();
@@ -322,6 +328,17 @@ class AbstractHandler {
       });
       return this.#scrape(url, options, retries + 1);
     }
+  }
+
+  /**
+   * Gets a string of any custom code which should be injected into the browser to assist with
+   * scraping. Returning null is acceptable in the case where there is no code to inject.
+   * @returns {Promise<string|null>} The custom JavaScript code.
+   */
+  // eslint-disable-next-line class-methods-use-this
+  async getCustomInjectCode() {
+    // No-op in the abstract implementation
+    return null;
   }
 
   /**
