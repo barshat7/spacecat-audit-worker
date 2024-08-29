@@ -30,6 +30,7 @@ export default async function runSQS(data, context = false) {
   const { log } = services;
   const {
     jobId = uuidv4(),
+    s3BucketName,
     options = {},
     processingType,
     slackContext = {},
@@ -39,7 +40,7 @@ export default async function runSQS(data, context = false) {
   try {
     validateInput(processingType, urls);
 
-    const config = { jobId, slackContext };
+    const config = { jobId, slackContext, s3BucketName };
     const handler = selectHandler(context, handlers, services, config, processingType);
 
     try {
