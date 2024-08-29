@@ -1,3 +1,10 @@
+## [1.10.10](https://github.com/adobe/spacecat-content-scraper/compare/v1.10.9...v1.10.10) (2024-08-29)
+
+
+### Bug Fixes
+
+* triggering by SQS ignores s3BucketName ([#138](https://github.com/adobe/spacecat-content-scraper/issues/138)) ([145d45c](https://github.com/adobe/spacecat-content-scraper/commit/145d45cb047efe6dae3960a712658fc01219ba73))
+
 ## [1.10.9](https://github.com/adobe/spacecat-content-scraper/compare/v1.10.8...v1.10.9) (2024-08-24)
 
 
