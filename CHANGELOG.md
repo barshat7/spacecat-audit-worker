@@ -1,3 +1,10 @@
+## [1.10.11](https://github.com/adobe/spacecat-content-scraper/compare/v1.10.10...v1.10.11) (2024-08-30)
+
+
+### Bug Fixes
+
+* handling multiple URLs in default handler and missing incoming SQS properties ([#139](https://github.com/adobe/spacecat-content-scraper/issues/139)) ([0c1c05b](https://github.com/adobe/spacecat-content-scraper/commit/0c1c05bed69381bf32d502c68473b12cd510f851))
+
 ## [1.10.10](https://github.com/adobe/spacecat-content-scraper/compare/v1.10.9...v1.10.10) (2024-08-29)
 
 
