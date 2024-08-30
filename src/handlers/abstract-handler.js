@@ -78,6 +78,7 @@ class AbstractHandler {
     // Local
     this.device = config.device;
     this.browser = null;
+    this.importPath = null;
   }
 
   /**
@@ -347,7 +348,7 @@ class AbstractHandler {
    */
   // eslint-disable-next-line no-unused-vars
   async getStoragePath() {
-    return `scrapes/${this.config.jobId}/scrape.json`;
+    return path.join(`scrapes/${this.config.jobId}`, this.importPath ? `${this.importPath}.json` : 'index.json');
   }
 
   /**
@@ -498,6 +499,8 @@ class AbstractHandler {
       this.#log('error', `Invalid URL: ${url}`);
       return { error: `Invalid URL: ${url}` };
     }
+
+    this.importPath = new URL(url).pathname.replace(/\/$/, '');
 
     try {
       const result = await this.#scrape(url, options);

@@ -18,14 +18,17 @@ The URLs Array should not exceed 200-300 URLs per message, otherwise the Lambda 
 {
   "processingType": "import",
   "jobId": "75c2c9be-9751-4635-bba6-92b3beda707d",
+  "s3BucketName": "scraping-bucket",
+  "completionQueueUrl": "https://sqs.us-east-1.amazonaws.com/completion-queue",
+  "skipMessage": false,
+  "skipStorage": false,
   "options": {
     "pageLoadTimeout": 100,
-    "enableJavaScript": true,
-    "saveAsDocx": true
+    "enableJavaScript": true
   },
   "urls": [
     {
-      "url": "https://www.example.com/page1",  
+      "url": "https://www.example.com/page1",
       "urlId": "8697cda0-af31-4933-93c8-80d1b88272ba",
       "status": "pending"
     }
@@ -37,10 +40,13 @@ The URLs Array should not exceed 200-300 URLs per message, otherwise the Lambda 
 
 - **processingType**: A string that indicates the type of processing to be performed. This field is used to select the appropriate handler. Example values: `"import"`, `"export"`.
 - **jobId**: A unique identifier for the job. This is a string, typically a UUID.
+- **s3BucketName**: The name of the S3 bucket where the scraped content will be stored.
+- **completionQueueUrl**: The URL of the SQS queue where a completion message will be sent after processing.
+- **skipMessage**: A boolean indicating whether to skip sending a completion message to the SQS queue.
+- **skipStorage**: A boolean indicating whether to skip storing the scraped content in S3.
 - **options**: An object containing various options for processing. These options can be used to customize the behavior of the scraping process.
   - **pageLoadTimeout**: (Optional) A number specifying the timeout in milliseconds to allow for the DOM to be decorated by client side JavaScript. Default is `100` milliseconds.
   - **enableJavaScript**: (Optional) A boolean indicating whether JavaScript should be enabled in the browser context. Default is `true`.
-  - **saveAsDocx**: (Optional) A boolean indicating whether the scraped result should be saved as a DOCX file. Default is `false`.
 - **urls**: An array of URL objects to be processed. Only the first URL in the array will be processed.
   - **url**: A string representing the URL to be scraped. This is a required field.
   - **urlId**: (Optional) A unique identifier for the URL. This is a string, typically a UUID.

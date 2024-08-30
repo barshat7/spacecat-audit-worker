@@ -34,15 +34,17 @@ class TestHandler extends AbstractHandler {
   }
 }
 
-const createBrowserStub = (pageStub) => sinon.stub(puppeteer, 'launch').resolves({
-  newPage: () => pageStub,
+const createBrowserStub = (pageStubs) => sinon.stub(puppeteer, 'launch').resolves({
+  newPage: sinon.stub().callsFake(() => {
+    const pageStub = pageStubs.shift();
+    return pageStub;
+  }),
   close: sinon.stub(),
   userAgent: async () => 'test-user-agent',
   process: () => ({
     spawnargs: ['--user-data-dir=/tmp/puppeteer_dev_profile'],
   }),
 });
-
 const createPageStub = (scrapeResult = {}, url = 'https://example.com') => ({
   close: sinon.stub(),
   goto: sinon.stub(),
@@ -193,7 +195,7 @@ describe('AbstractHandler', () => {
         executablePath: '/opt/homebrew/bin/chromium',
         headless: true,
       };
-      const browserLaunchStub = createBrowserStub(mockPage);
+      const browserLaunchStub = createBrowserStub([mockPage]);
 
       await handler.process([{ url: 'https://example.com' }]);
 
@@ -266,7 +268,7 @@ describe('AbstractHandler', () => {
       };
 
       sinon.stub(chromium, 'executablePath').resolves('/some/test/path');
-      const browserLaunchStub = createBrowserStub(mockPage);
+      const browserLaunchStub = createBrowserStub([mockPage]);
 
       process.env.AWS_EXECUTION_ENV = 'AWS_Lambda_nodejs14.x';
       await handler.process([{ url: 'https://example.com' }]);
@@ -277,14 +279,14 @@ describe('AbstractHandler', () => {
     });
 
     it('returns error when invalid URL is provided', async () => {
-      createBrowserStub(mockPage);
+      createBrowserStub([mockPage]);
       const results = await handler.process([{ url: 'invalid-url' }]);
       expect(results.length).to.equal(1);
       expect(results[0].error).to.equal('Invalid URL: invalid-url');
     });
 
     it('logs the scraping process', async () => {
-      const browserLaunchStub = createBrowserStub(mockPage);
+      const browserLaunchStub = createBrowserStub([mockPage]);
 
       await handler.process([{ url: 'https://example.com' }]);
 
@@ -294,7 +296,7 @@ describe('AbstractHandler', () => {
 
     it('returns the correct scrape result', async () => {
       const pageStub = createPageStub({ data: 'scraped data' });
-      createBrowserStub(pageStub);
+      createBrowserStub([pageStub]);
 
       const results = await handler.process([{ url: 'https://example.com' }]);
 
@@ -306,7 +308,7 @@ describe('AbstractHandler', () => {
     });
 
     it('loads evaluate file specific to handler', async () => {
-      createBrowserStub(createPageStub({ data: 'scraped data' }));
+      createBrowserStub([createPageStub({ data: 'scraped data' })]);
       const importHandler = new TestHandler('import', mockConfig, mockServices);
       const results = await importHandler.process([{ url: 'https://example.com' }]);
 
@@ -318,7 +320,7 @@ describe('AbstractHandler', () => {
     it('resets browser if there is a resource error', async () => {
       const pageStub = createPageStub({ data: 'scraped data' });
       pageStub.emulate.rejects(new Error('net::ERR_INSUFFICIENT_RESOURCES'));
-      const browser = createBrowserStub(pageStub);
+      const browser = createBrowserStub([pageStub]);
       await handler.process([{ url: 'https://example.com' }]);
       expect(browser.calledTwice).to.be.true;
     }).timeout(3000);
@@ -386,7 +388,7 @@ describe('AbstractHandler', () => {
     });
 
     it('sets options', async () => {
-      createBrowserStub(mockPage);
+      createBrowserStub([mockPage]);
       const importHandler = new TestHandler('import', mockConfig, mockServices);
       const options = { pageLoadTimeout: 10, enableJavascript: false };
 
@@ -399,7 +401,7 @@ describe('AbstractHandler', () => {
     it('returns error if s3 throws an error', async () => {
       mockServices.s3Client.send = sinon.stub().rejects(new Error('Test error'));
       const pageStub = createPageStub({ data: 'scraped data' });
-      createBrowserStub(pageStub);
+      createBrowserStub([pageStub]);
 
       const results = await handler.process([{ url: 'https://example.com' }]);
 
@@ -412,7 +414,7 @@ describe('AbstractHandler', () => {
     it('stores the scrape result in S3', async () => {
       const scrapeResult = { data: 'scraped data' };
 
-      createBrowserStub(createPageStub(scrapeResult));
+      createBrowserStub([createPageStub(scrapeResult)]);
 
       const results = await handler.process([{ url: 'https://example.com' }]);
 
@@ -421,7 +423,7 @@ describe('AbstractHandler', () => {
       expect(results[0].finalUrl).to.equal('https://example.com');
       expect(results[0].scrapeTime).to.be.a('number');
       expect(results[0].scrapedAt).to.be.a('number');
-      expect(results[0].location).to.equal('scrapes/test-job-id/scrape.json');
+      expect(results[0].location).to.equal('scrapes/test-job-id/index.json');
       expect(results[0].userAgent).to.equal('test-user-agent');
       expect(results[0].scrapeResult).to.deep.equal(scrapeResult);
       expect(mockServices.s3Client.send.calledOnce).to.be.true;
@@ -429,7 +431,7 @@ describe('AbstractHandler', () => {
     it('skips storage if config.skipStorage is set to true', async () => {
       const scrapeResult = { data: 'scraped data' };
 
-      createBrowserStub(createPageStub(scrapeResult));
+      createBrowserStub([createPageStub(scrapeResult)]);
 
       const handlerWithSkipStorage = new TestHandler('TestHandler', { ...mockConfig, skipStorage: true }, mockServices);
       const results = await handlerWithSkipStorage.process([{ url: 'https://example.com' }]);
@@ -444,10 +446,11 @@ describe('AbstractHandler', () => {
   describe('Messaging', () => {
     it('sends sqs message with scrape result', async () => {
       const scrapeResult = { data: 'scraped data' };
+      const pageStub1 = createPageStub(scrapeResult);
+      const pageStub2 = createPageStub(scrapeResult, 'https://example.com/path');
+      createBrowserStub([pageStub1, pageStub2]);
 
-      createBrowserStub(createPageStub(scrapeResult));
-
-      await handler.process([{ url: 'https://example.com' }]);
+      await handler.process([{ url: 'https://example.com' }, { url: 'https://example.com/path' }]);
 
       expect(mockServices.sqsClient.sendMessage.calledOnce).to.be.true;
       expect(mockServices.sqsClient.sendMessage.firstCall.args[0]).to.equal('https://sqs.test.com/queue');
@@ -460,7 +463,7 @@ describe('AbstractHandler', () => {
         },
         scrapeResults: [
           {
-            location: 'scrapes/test-job-id/scrape.json',
+            location: 'scrapes/test-job-id/index.json',
             metadata: {
               path: undefined,
               urlId: undefined,
@@ -468,14 +471,23 @@ describe('AbstractHandler', () => {
               status: 'COMPLETE',
             },
           },
+          {
+            location: 'scrapes/test-job-id/path.json',
+            metadata: {
+              path: undefined,
+              urlId: undefined,
+              url: 'https://example.com/path',
+              status: 'COMPLETE',
+            },
+          },
         ],
       });
-    });
+    }).timeout(6000);
 
     it('skips messaging if config.skipMessage is set to true', async () => {
       const scrapeResult = { data: 'scraped data' };
 
-      createBrowserStub(createPageStub(scrapeResult));
+      createBrowserStub([createPageStub(scrapeResult)]);
 
       const handlerWithSkipMessage = new TestHandler('TestHandler', { ...mockConfig, skipMessage: true }, mockServices);
       await handlerWithSkipMessage.process([{ url: 'https://example.com' }]);
