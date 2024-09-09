@@ -1,3 +1,10 @@
+# [1.11.0](https://github.com/adobe/spacecat-content-scraper/compare/v1.10.13...v1.11.0) (2024-09-09)
+
+
+### Features
+
+* Add custom headers for import  ([#145](https://github.com/adobe/spacecat-content-scraper/issues/145)) ([658b2ac](https://github.com/adobe/spacecat-content-scraper/commit/658b2ac516fb346d36c7aacf66c19ab97688d4f3))
+
 ## [1.10.13](https://github.com/adobe/spacecat-content-scraper/compare/v1.10.12...v1.10.13) (2024-09-09)
 
 
