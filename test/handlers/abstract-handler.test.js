@@ -51,6 +51,7 @@ const createPageStub = (scrapeResult = {}, url = 'https://example.com') => ({
   emulate: sinon.stub(),
   waitForSelector: sinon.stub(),
   setJavaScriptEnabled: sinon.stub(),
+  setExtraHTTPHeaders: sinon.stub(),
   evaluate: sinon.stub().resolves(scrapeResult),
   url: sinon.stub().returns(url),
   isClosed: sinon.stub().returns(false),
@@ -392,10 +393,20 @@ describe('AbstractHandler', () => {
       const importHandler = new TestHandler('import', mockConfig, mockServices);
       const options = { pageLoadTimeout: 10, enableJavascript: false };
 
-      await importHandler.process([{ url: 'https://example.com' }], options);
+      await importHandler.process([{ url: 'https://example.com' }], undefined, options);
 
       expect(mockPage.setJavaScriptEnabled.calledWith(false)).to.be.true;
       expect(mockPage.goto.calledWith('https://example.com', { waitUntil: 'networkidle2', timeout: 10 })).to.be.true;
+    });
+
+    it('sets custom headers', async () => {
+      createBrowserStub([mockPage]);
+      const importHandler = new TestHandler('import', mockConfig, mockServices);
+      const customHeaders = { Authorization: 'Bearer aXsPb3183G' };
+
+      await importHandler.process([{ url: 'https://example.com' }], customHeaders, {});
+
+      expect(mockPage.setExtraHTTPHeaders.callCount).to.equal(1);
     });
 
     it('returns error if s3 throws an error', async () => {

@@ -255,7 +255,7 @@ class AbstractHandler {
    * @returns {Promise<Object>} The scrape result.
    * @throws Will throw an error if scraping fails.
    */
-  async #scrape(url, options, retries = 0) {
+  async #scrape(url, customHeaders, options, retries = 0) {
     const maxRetries = 1;
     let browser = null;
 
@@ -273,6 +273,10 @@ class AbstractHandler {
 
       if (!enableJavascript) {
         await page.setJavaScriptEnabled(false);
+      }
+
+      if (isObject(customHeaders)) {
+        await page.setExtraHTTPHeaders(customHeaders);
       }
 
       if (this.device) {
@@ -327,7 +331,7 @@ class AbstractHandler {
       await new Promise((resolve) => {
         setTimeout(resolve, 1000);
       });
-      return this.#scrape(url, options, retries + 1);
+      return this.#scrape(url, customHeaders, options, retries + 1);
     }
   }
 
@@ -473,12 +477,12 @@ class AbstractHandler {
    * @returns {Promise<Array>} The results of the processing.
    * @throws Will throw an error if processing fails.
    */
-  async process(urlsData, options = {}) {
+  async process(urlsData, customHeaders, options = {}) {
     await this.onProcessingStart(urlsData);
     const results = [];
     for (const urlData of urlsData) {
       // eslint-disable-next-line no-await-in-loop
-      const result = await this.processUrl(urlData, options);
+      const result = await this.processUrl(urlData, customHeaders, options);
       results.push(result);
       this.#log('info', `Processed ${results.length} URLs...`);
 
@@ -492,7 +496,7 @@ class AbstractHandler {
     return results;
   }
 
-  async processUrl(urlData, options = {}) {
+  async processUrl(urlData, customHeaders, options = {}) {
     const { url } = urlData;
 
     if (!isValidUrl(url)) {
@@ -503,7 +507,7 @@ class AbstractHandler {
     this.importPath = new URL(url).pathname.replace(/\/$/, '');
 
     try {
-      const result = await this.#scrape(url, options);
+      const result = await this.#scrape(url, customHeaders, options);
       const transformedResult = await this.transformScrapeResult(result);
       result.location = await this.#store(transformedResult, options);
       result.urlId = urlData.urlId;

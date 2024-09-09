@@ -83,6 +83,9 @@ describe('index.js', () => {
       processingType: 'desktop',
       slackContext: {},
       urls: ['https://example.com'],
+      customHeaders: {
+        Authorization: 'Bearer xSpB3183G',
+      },
     };
   });
 

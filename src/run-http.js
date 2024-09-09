@@ -25,6 +25,7 @@ export default async function runHTTP(request, context = false) {
     options = {},
     slackContext = {},
     urls,
+    customHeaders,
   } = context.data;
 
   try {
@@ -43,7 +44,7 @@ export default async function runHTTP(request, context = false) {
 
     try {
       const startTime = new Date();
-      const results = await handler.process(urls, options);
+      const results = await handler.process(urls, customHeaders, options);
       const endTime = new Date();
       const failedCount = results.filter((r) => r.error).length;
       const successCount = results.length - failedCount;

@@ -37,6 +37,7 @@ export default async function runSQS(data, context = false) {
     device,
     options = {},
     processingType,
+    customHeaders,
     slackContext = {},
     urls,
   } = data;
@@ -52,7 +53,7 @@ export default async function runSQS(data, context = false) {
     try {
       // we want sequential processing for now
       // eslint-disable-next-line no-await-in-loop
-      await handler.process(urls, options);
+      await handler.process(urls, customHeaders, options);
     } catch (e) {
       log.error(`Error for handler ${handler.getName()}: ${e.message}`, e);
     }
