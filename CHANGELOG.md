@@ -1,3 +1,10 @@
+## [1.11.2](https://github.com/adobe/spacecat-content-scraper/compare/v1.11.1...v1.11.2) (2024-09-16)
+
+
+### Bug Fixes
+
+* **deps:** update dependency @adobe/helix-universal-logger to v3.0.19 ([#149](https://github.com/adobe/spacecat-content-scraper/issues/149)) ([0af10de](https://github.com/adobe/spacecat-content-scraper/commit/0af10de87a8b8b9b37d6eb927f99c6119c532ac4))
+
 ## [1.11.1](https://github.com/adobe/spacecat-content-scraper/compare/v1.11.0...v1.11.1) (2024-09-14)
 
 
