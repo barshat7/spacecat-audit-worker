@@ -1,3 +1,10 @@
+# [1.12.0](https://github.com/adobe/spacecat-content-scraper/compare/v1.11.5...v1.12.0) (2024-09-24)
+
+
+### Features
+
+* SITES-25484 [Importer] Tracing: Add Logger to Lambdas for Impor… ([#155](https://github.com/adobe/spacecat-content-scraper/issues/155)) ([9a38cd5](https://github.com/adobe/spacecat-content-scraper/commit/9a38cd5bd2aa14b5c80747f032ba3a88312b75d3))
+
 ## [1.11.5](https://github.com/adobe/spacecat-content-scraper/compare/v1.11.4...v1.11.5) (2024-09-21)
 
 
