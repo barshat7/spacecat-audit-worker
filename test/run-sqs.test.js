@@ -18,6 +18,8 @@ import nock from 'nock';
 import { v4 as uuidv4 } from 'uuid';
 
 import { main as runLambda } from '../src/index.js';
+import runSQS from '../src/run-sqs.js';
+import { expectLogContains } from './test-helpers.js';
 
 const log = {
   debug: sinon.spy(),
@@ -102,36 +104,53 @@ describe('index.js', () => {
       const response = await runLambda(invalidMessage, context);
 
       expect(response.status).to.equal(500);
-      expect(log.error.calledWith('Error scraping URL: Error: Missing processingType')).to.be.true;
+
+      expectLogContains(log.error, 'Error scraping URL: Error: Missing processingType');
+      // jobId must be included in the log message
+      expectLogContains(log.error, '[jobId=');
+
       expect(await response.json()).to.deep.equal({ message: 'Missing processingType' });
     });
 
     it('returns internal server error when URLs are missing', async () => {
       const invalidMessage = { ...mockMessage, urls: [] };
-      const response = await runLambda(invalidMessage, createMockContext(invalidMessage));
+      const context = createMockContext(invalidMessage);
+      const response = await runLambda(invalidMessage, context);
 
       expect(response.status).to.equal(500);
-      expect(log.error.calledWith('Error scraping URL: Error: Missing URLs')).to.be.true;
+
+      expectLogContains(log.error, 'Error scraping URL: Error: Missing URLs');
+      // jobId must be included in the log message
+      expectLogContains(log.error, '[jobId=');
+
       expect(await response.json()).to.deep.equal({ message: 'Missing URLs' });
     });
 
     it('returns internal server error when URLs is not an array', async () => {
       const invalidMessage = { ...mockMessage, urls: '' };
-      const response = await runLambda(invalidMessage, createMockContext(invalidMessage));
+      const context = createMockContext(invalidMessage);
+      const response = await runLambda(invalidMessage, context);
 
       expect(response.status).to.equal(500);
-      expect(log.error.calledWith('Error scraping URL: Error: Missing URLs')).to.be.true;
+
+      expectLogContains(log.error, 'Error scraping URL: Error: Missing URLs');
+      // jobId must be included in the log message
+      expectLogContains(log.error, '[jobId=');
+
       expect(await response.json()).to.deep.equal({ message: 'Missing URLs' });
     });
-  });
 
-  describe('run', () => {
     it('returns internal server error if handler config is missing', async () => {
       const context = createMockContext(mockMessage, [mockHandler]);
       context.env.HANDLER_CONFIGS = '{}';
       const response = await runLambda(mockMessage, context);
 
       expect(response.status).to.equal(500);
+
+      expectLogContains(log.error, 'Missing handler configuration for mock-handler');
+      // jobId must be included in the log message
+      expectLogContains(log.error, '[jobId=');
+
       expect(await response.json()).to.deep.equal({ message: 'Missing handler configuration for mock-handler' });
     });
 
@@ -140,7 +159,11 @@ describe('index.js', () => {
       const response = await runLambda(mockMessage, context);
 
       expect(response.status).to.equal(204);
-      expect(log.error.calledWith('Error for handler mock-handler: Handler error')).to.be.true;
+
+      expectLogContains(log.error, 'Error for handler mock-handler: Handler error');
+      // jobId must be included in the log message
+      expectLogContains(log.error, '[jobId=');
+
       expect(await response.text()).to.equal('');
     });
 
@@ -148,6 +171,41 @@ describe('index.js', () => {
       const response = await runLambda(mockMessage, createMockContext(mockMessage, [mockHandler]));
       expect(response.status).to.equal(204);
       expect(await response.text()).to.equal('');
+    });
+  });
+
+  describe('runSQS log behavior', () => {
+    it('uses contextualLog if available', async () => {
+      const mockContext = {
+        contextualLog: { error: sinon.spy() },
+        attributes: {
+          handlers: [],
+          services: { log: { error: sinon.spy() } },
+        },
+      };
+      const mockData = { urls: ['http://example.com'] };
+
+      await runSQS(mockData, mockContext);
+
+      expect(mockContext.attributes.services.log).to.equal(mockContext.contextualLog);
+      expect(mockContext.contextualLog.error.called).to.be.true;
+      expect(mockContext.attributes.services.log.error.called).to.be.true;
+
+      expectLogContains(mockContext.contextualLog.error, 'Error scraping URL: Error: Missing processingType');
+    });
+
+    it('uses services log if contextualLog is not available', async () => {
+      const mockContext = {
+        attributes: {
+          handlers: [],
+          services: { log: { error: sinon.spy() } },
+        },
+      };
+      const mockData = { processingType: 'type', urls: ['http://example.com'] };
+
+      await runSQS(mockData, mockContext);
+
+      expect(mockContext.attributes.services.log.error.called).to.be.true;
     });
   });
 });

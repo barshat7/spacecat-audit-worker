@@ -27,6 +27,7 @@ import {
   resolveSecretsName,
   sqsEventAdapter,
   sqsWrapper,
+  logWrapper,
 } from '@adobe/spacecat-shared-utils';
 
 import DefaultHandler from './handlers/default-handler.js';
@@ -68,6 +69,7 @@ const serviceProvider = (fn) => async (req, context) => {
 export const wrapSQS = wrap(runSQS)
   .with(handlerProvider)
   .with(serviceProvider)
+  .with(logWrapper)
   .with(sqsEventAdapter)
   .with(sqsWrapper)
   .with(secrets, { name: resolveSecretsName })
@@ -79,6 +81,7 @@ export const wrapHTTP = wrap(runHTTP)
   .with(authWrapper, { authHandlers: [LegacyApiKeyHandler, AdobeImsHandler] })
   .with(enrichPathInfo)
   .with(bodyData)
+  .with(logWrapper)
   .with(sqsWrapper)
   .with(secrets, { name: resolveSecretsName })
   .with(helixStatus);

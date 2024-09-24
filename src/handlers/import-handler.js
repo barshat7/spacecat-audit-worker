@@ -69,10 +69,10 @@ class ImportHandler extends AbstractHandler {
     } catch (error) {
       if (error.name === 'NoSuchKey') {
         // No custom import.js file found - no-op
-        this.log.info(`There is no import.js file in bucket: ${this.config.s3BucketName} for jobId: ${this.config.jobId}`);
+        this.log.info(`There is no import.js file in bucket: ${this.config.s3BucketName}`);
         return null;
       } else {
-        this.log.error(`Error retrieving import.js from bucket: ${this.config.s3BucketName} for jobId: ${this.config.jobId}`, error);
+        this.log.error(`Error retrieving import.js from bucket: ${this.config.s3BucketName}`, error);
         throw error;
       }
     }

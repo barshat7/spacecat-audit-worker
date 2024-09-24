@@ -27,7 +27,11 @@ const validateInput = (processingType, urls) => {
 export default async function runSQS(data, context = false) {
   const { attributes } = context;
   const { handlers, services } = attributes;
+  if (context.contextualLog) {
+    services.log = context.contextualLog;
+  }
   const { log } = services;
+
   const {
     jobId = uuidv4(),
     s3BucketName,
