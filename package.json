@@ -92,7 +92,7 @@
     "puppeteer-extra-plugin-adblocker": "2.13.6",
     "puppeteer-extra-plugin-stealth": "2.11.2",
     "sharp": "0.33.5",
-    "sinon": "18.0.1"
+    "sinon": "19.0.2"
   },
   "lint-staged": {
     "*.js": "eslint",
