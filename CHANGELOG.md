@@ -1,3 +1,10 @@
+## [1.12.5](https://github.com/adobe/spacecat-content-scraper/compare/v1.12.4...v1.12.5) (2024-10-02)
+
+
+### Bug Fixes
+
+* originalURL is missing from params passed to the transformation function (import.js) ([#162](https://github.com/adobe/spacecat-content-scraper/issues/162)) ([be43334](https://github.com/adobe/spacecat-content-scraper/commit/be4333468ae0596aadc6916b7c0acd048ddbee92))
+
 ## [1.12.4](https://github.com/adobe/spacecat-content-scraper/compare/v1.12.3...v1.12.4) (2024-09-30)
 
 
