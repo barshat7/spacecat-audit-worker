@@ -1,3 +1,10 @@
+# [1.13.0](https://github.com/adobe/spacecat-content-scraper/compare/v1.12.6...v1.13.0) (2024-10-08)
+
+
+### Features
+
+* bulk scraping pages ([#137](https://github.com/adobe/spacecat-content-scraper/issues/137)) ([f1f47e1](https://github.com/adobe/spacecat-content-scraper/commit/f1f47e1f43aa4690be30d3a3e62277156f66ef23))
+
 ## [1.12.6](https://github.com/adobe/spacecat-content-scraper/compare/v1.12.5...v1.12.6) (2024-10-05)
 
 
