@@ -29,6 +29,9 @@ import StealthPlugin from 'puppeteer-extra-plugin-stealth';
 // eslint-disable-next-line import/no-extraneous-dependencies
 import AdblockerPlugin from 'puppeteer-extra-plugin-adblocker';
 
+import { promisify } from 'util';
+import { exec } from 'child_process';
+
 import fs from 'fs';
 import path from 'path';
 
@@ -352,7 +355,7 @@ class AbstractHandler {
    */
   // eslint-disable-next-line no-unused-vars
   async getStoragePath() {
-    return path.join(`scrapes/${this.config.jobId}`, this.importPath ? `${this.importPath}.json` : 'index.json');
+    return path.join(`scrapes/${this.config.jobId}`, this.importPath ? `${this.importPath}/scrape.json` : 'scrape.json');
   }
 
   /**
@@ -406,6 +409,28 @@ class AbstractHandler {
     this.#log('info', `Successfully uploaded to ${filePath}. Response: ${JSON.stringify(response)}`);
 
     return filePath;
+  }
+
+  /**
+   * Wraps the promisify function around the exec function.
+   * @type {(arg1: string) => Promise<string>}
+   */
+  execPromise = promisify(exec);
+
+  /**
+   * Gets the disk usage of the /tmp directory.
+   * @returns {Promise<void>}
+   */
+  async getDiskUsage() {
+    try {
+      const { stdout, stderr } = await this.execPromise('df -P -H /tmp');
+      if (stderr) {
+        this.#log('error', `Error getting disk usage: ${stderr}`);
+      }
+      this.#log('info', `Disk usage size (tmp): ${stdout}`);
+    } catch (e) {
+      this.#log('error', `Error getting disk usage: ${e.message}`, e);
+    }
   }
 
   /**
@@ -480,10 +505,13 @@ class AbstractHandler {
   async process(urlsData, customHeaders, options = {}) {
     await this.onProcessingStart(urlsData);
     const results = [];
-    for (const urlData of urlsData) {
+    for (const [index, urlData] of urlsData.entries()) {
       // eslint-disable-next-line no-await-in-loop
       const result = await this.processUrl(urlData, customHeaders, options);
       results.push(result);
+      this.#log('info', `Processed URL ${index + 1}/${urlsData.length}: ${urlData.url}`);
+      // eslint-disable-next-line no-await-in-loop
+      await this.getDiskUsage();
       this.#log('info', `Processed ${results.length} URLs...`);
 
       // wait for 1s before processing the next URL to avoid rate limiting

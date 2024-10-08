@@ -22,6 +22,7 @@ import puppeteer from 'puppeteer-extra';
 
 import { GetObjectCommand, PutObjectCommand } from '@aws-sdk/client-s3';
 import fs from 'fs';
+import { describe } from 'mocha';
 import AbstractHandler from '../../src/handlers/abstract-handler.js';
 
 chai.use(chaiAsPromised);
@@ -29,6 +30,10 @@ chai.use(chaiAsPromised);
 const { expect } = chai;
 
 class TestHandler extends AbstractHandler {
+  getDiskUsage() {
+    return super.getDiskUsage();
+  }
+
   static accepts(processingType) {
     return processingType === 'test';
   }
@@ -62,7 +67,6 @@ describe('AbstractHandler', () => {
   let mockConfig;
   let mockServices;
   let mockPage;
-
   beforeEach(() => {
     mockConfig = {
       jobId: 'test-job-id',
@@ -102,7 +106,6 @@ describe('AbstractHandler', () => {
     };
 
     mockPage = createPageStub();
-
     handler = new TestHandler('TestHandler', mockConfig, mockServices);
   });
 
@@ -434,7 +437,7 @@ describe('AbstractHandler', () => {
       expect(results[0].finalUrl).to.equal('https://example.com');
       expect(results[0].scrapeTime).to.be.a('number');
       expect(results[0].scrapedAt).to.be.a('number');
-      expect(results[0].location).to.equal('scrapes/test-job-id/index.json');
+      expect(results[0].location).to.equal('scrapes/test-job-id/scrape.json');
       expect(results[0].userAgent).to.equal('test-user-agent');
       expect(results[0].scrapeResult).to.deep.equal(scrapeResult);
       expect(mockServices.s3Client.send.calledOnce).to.be.true;
@@ -474,7 +477,7 @@ describe('AbstractHandler', () => {
         },
         scrapeResults: [
           {
-            location: 'scrapes/test-job-id/index.json',
+            location: 'scrapes/test-job-id/scrape.json',
             metadata: {
               path: undefined,
               urlId: undefined,
@@ -483,7 +486,7 @@ describe('AbstractHandler', () => {
             },
           },
           {
-            location: 'scrapes/test-job-id/path.json',
+            location: 'scrapes/test-job-id/path/scrape.json',
             metadata: {
               path: undefined,
               urlId: undefined,
@@ -515,6 +518,48 @@ describe('AbstractHandler', () => {
 
     it('returns true for a subclass that implements the method', () => {
       expect(TestHandler.accepts('test')).to.be.true;
+    });
+  });
+  describe('getDiskUsage', () => {
+    let execPromiseStub;
+
+    beforeEach(() => {
+      execPromiseStub = sinon.stub(handler, 'execPromise');
+    });
+
+    afterEach(() => {
+      execPromiseStub.restore();
+    });
+
+    it('should log disk usage when command executes successfully', async () => {
+      const mockStdout = 'Filesystem      Size  Used Avail Use% Mounted on\n/dev/xvda1      8.0G  5.0G  3.0G  63% /';
+      execPromiseStub.resolves({ stdout: mockStdout, stderr: '' });
+
+      await handler.getDiskUsage();
+
+      expect(execPromiseStub.calledOnceWith('df -P -H /tmp')).to.be.true;
+      expect(mockServices.log.info.firstCall.args[0]).to.include(`Disk usage size (tmp): ${mockStdout}`);
+      expect(mockServices.log.error.called).to.be.false;
+    });
+
+    it('should log error when command execution fails', async () => {
+      const mockError = new Error('Command failed');
+      execPromiseStub.rejects(mockError);
+
+      await handler.getDiskUsage();
+
+      expect(execPromiseStub.calledOnceWith('df -P -H /tmp')).to.be.true;
+      expect(mockServices.log.error.firstCall.args[0]).to.include(`Error getting disk usage: ${mockError.message}`, mockError);
+    });
+
+    it('should log error when command returns stderr', async () => {
+      const mockStderr = 'df: /tmp: No such file or directory';
+      execPromiseStub.resolves({ stdout: '', stderr: mockStderr });
+
+      await handler.getDiskUsage();
+
+      expect(execPromiseStub.calledOnceWith('df -P -H /tmp')).to.be.true;
+      expect(mockServices.log.error.firstCall.args[0]).to.include(`Error getting disk usage: ${mockStderr}`);
     });
   });
 });

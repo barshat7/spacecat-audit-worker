@@ -9,12 +9,11 @@
  * OF ANY KIND, either express or implied. See the License for the specific language
  * governing permissions and limitations under the License.
  */
-
-/* eslint-env mocha */
-
 import { expect } from 'chai';
+import {
+  describe, it, beforeEach, afterEach,
+} from 'mocha';
 import sinon from 'sinon';
-
 import AbstractHandler from '../../src/handlers/abstract-handler.js';
 import DefaultHandler from '../../src/handlers/default-handler.js';
 
@@ -37,16 +36,15 @@ describe('DefaultHandler', () => {
         error: sinon.stub(),
       },
       sqsClient: {
-        sendMessage: sinon.stub().returns({ promise: () => Promise.resolve() }),
+        sendMessage: sinon.stub().resolves({}),
       },
       s3Client: {
-        send: sinon.stub().returns({ promise: () => Promise.resolve() }),
+        send: sinon.stub().resolves({}),
       },
       slackClient: {
-        postMessage: sinon.stub().returns({ promise: () => Promise.resolve() }),
+        postMessage: sinon.stub().resolves({}),
       },
     };
-
     handler = new DefaultHandler(mockConfig, mockServices);
   });
 
@@ -63,12 +61,8 @@ describe('DefaultHandler', () => {
     it('inherits from AbstractHandler', () => {
       expect(handler).to.be.instanceOf(AbstractHandler);
     });
-
     it('validates config and services', () => {
-      expect(() => new DefaultHandler(
-        mockConfig,
-        mockServices,
-      )).to.not.throw();
+      expect(() => new DefaultHandler(mockConfig, mockServices)).to.not.throw();
     });
   });
 
@@ -79,6 +73,25 @@ describe('DefaultHandler', () => {
 
     it('returns false for non-matching processing type', () => {
       expect(DefaultHandler.accepts('non-matching-type')).to.be.false;
+    });
+  });
+
+  describe('processUrl', () => {
+    it('throws an error if URL is not provided', async () => {
+      try {
+        await handler.processUrl({});
+      } catch (error) {
+        expect(error.message).to.equal('URL is not provided');
+      }
+    });
+    it('handles URL processing errors', async () => {
+      const urlData = { url: 'invalid-url', urlId: 'test-id' };
+      const result = await handler.processUrl(urlData);
+
+      expect(result).to.deep.equal({
+        error: 'Invalid URL: invalid-url',
+      });
+      expect(mockServices.log.error.calledOnce).to.be.true;
     });
   });
 });

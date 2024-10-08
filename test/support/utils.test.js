@@ -15,6 +15,7 @@
 import { expect } from 'chai';
 import sinon from 'sinon';
 import { selectHandler, sendSlackMessage, sendSQSMessage } from '../../src/support/utils.js';
+import DefaultHandler from '../../src/handlers/default-handler.js';
 
 describe('utils.js', () => {
   describe('sendSlackMessage', () => {
@@ -126,6 +127,33 @@ describe('utils.js', () => {
       const processingType = 'desktop';
 
       expect(() => selectHandler(context, handlers, services, config, processingType)).to.throw('No handler found for processingType: desktop');
+    });
+    it('gets default handler when processingType is default', () => {
+      const context = {
+        env: {
+          HANDLER_CONFIGS: JSON.stringify({
+            default: {},
+            scrape: { type: 'scrape' },
+          }),
+        },
+      };
+      const handlers = [DefaultHandler];
+      const services = {
+        log: console,
+        sqsClient: {},
+        s3Client: {},
+        slackClient: {},
+      };
+      const config = {
+        jobId: 'test-job',
+        s3BucketName: 'test-bucket',
+        completionQueueUrl: 'https://sqs.example.com/queue',
+        slackContext: {},
+        device: null,
+      };
+      const processingType = 'default';
+      const handler = selectHandler(context, handlers, services, config, processingType);
+      expect(handler).to.be.instanceOf(DefaultHandler);
     });
   });
 });
