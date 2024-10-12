@@ -87,7 +87,7 @@
     "mocha-suppress-logs": "0.5.1",
     "nock": "13.5.5",
     "nodemon": "3.1.7",
-    "puppeteer-core": "23.5.0",
+    "puppeteer-core": "23.5.3",
     "puppeteer-extra": "3.3.6",
     "puppeteer-extra-plugin-adblocker": "2.13.6",
     "puppeteer-extra-plugin-stealth": "2.11.2",
@@ -114,8 +114,8 @@
     "@adobe/spacecat-shared-http-utils": "1.6.11",
     "@adobe/spacecat-shared-slack-client": "1.3.17",
     "@adobe/spacecat-shared-utils": "1.20.5",
-    "@aws-sdk/client-s3": "3.665.0",
-    "typescript": "5.6.2",
+    "@aws-sdk/client-s3": "3.670.0",
+    "typescript": "5.6.3",
     "uuid": "^10.0.0"
   }
 }
