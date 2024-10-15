@@ -18,6 +18,7 @@ import sharp from 'sharp';
 
 import { GetObjectCommand } from '@aws-sdk/client-s3';
 import AbstractHandler from './abstract-handler.js';
+import RedirectError from '../support/redirect-error.js';
 
 /**
  * Handler for import as a service URLs.
@@ -97,6 +98,26 @@ class ImportHandler extends AbstractHandler {
 
   async getStoragePath() {
     return path.join(`${s3KeyPrefix}/${this.config.jobId}/docx`, `${this.importPath}.docx`);
+  }
+
+  /**
+   * Validates the response for a given URL to check if it was redirected.
+   * In the import case, throws a RedirectError if requesting the URL resulted in a redirect.
+   *
+   * @param {string} originalUrl - The original URL that was requested.
+   * @param {object} response - The response object from the request.
+   * @throws {RedirectError} If the URL was redirected to a different URL.
+   */
+  // eslint-disable-next-line class-methods-use-this
+  validateResponseForUrl(originalUrl, response) {
+    super.validateResponseForUrl(originalUrl, response);
+    const redirectChain = response?.request()?.redirectChain();
+    const isRedirected = redirectChain && redirectChain.length > 0;
+    const isUrlChanged = response?.url() !== originalUrl;
+
+    if (isRedirected && isUrlChanged) {
+      throw new RedirectError(`Redirected to ${response.url()} from ${originalUrl}`);
+    }
   }
 
   /* eslint-disable-next-line class-methods-use-this */

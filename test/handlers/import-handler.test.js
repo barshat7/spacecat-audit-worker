@@ -208,5 +208,35 @@ describe('ImportHandler', () => {
       expect(pageStub.evaluate.args[1][0]).to.include('const CustomImportScript = (() => {');
       expect(pageStub.evaluate.args[1][0]).to.include('h1.textContent = \'Import as a Service\';');
     });
+
+    it('should handle a redirect', async () => {
+      const scrapeResult = { data: 'scraped data' };
+
+      const pageStub = createPageStub(scrapeResult, 'https://example.com');
+      createBrowserStub(pageStub);
+
+      pageStub.goto.resolves({
+        url: () => 'https://redirected-url.com',
+        request: () => ({
+          redirectChain: () => [{
+            url: 'https://example.com',
+            method: 'GET',
+            headers: { 'User-Agent': 'Mozilla/5.0' },
+          }], // Simulate a redirect chain
+        }),
+      });
+      const results = await handler.process([{ url: 'https://example.com', urlId: '1234' }]);
+
+      expect(results.length).to.equal(1);
+      expect(results[0].error.message).to.deep.equal('Redirected to https://redirected-url.com from https://example.com');
+      expect(mockServices.sqsClient.sendMessage.firstCall.args[1].scrapeResults).to.deep.equal([{
+        metadata: {
+          url: 'https://example.com',
+          urlId: '1234',
+          status: 'REDIRECT',
+          reason: 'Redirected to https://redirected-url.com from https://example.com',
+        },
+      }]);
+    });
   });
 });

@@ -36,6 +36,7 @@ import fs from 'fs';
 import path from 'path';
 
 import { sendSlackMessage, sendSQSMessage } from '../support/utils.js';
+import RedirectError from '../support/redirect-error.js';
 
 puppeteer.use(StealthPlugin());
 puppeteer.use(AdblockerPlugin({ blockTrackers: true }));
@@ -250,6 +251,16 @@ class AbstractHandler {
   }
 
   /**
+   * Extension point to validate the response.
+   * @param {string} originalUrl - The original URL.
+   * @param {Object} response - The response object.
+   */
+  // eslint-disable-next-line class-methods-use-this,no-unused-vars
+  validateResponseForUrl(originalUrl, response) {
+    // No-op in the abstract implementation
+  }
+
+  /**
    * Scrapes the content from the given URL.
    * @private
    * @param {string} url - The URL to scrape.
@@ -286,10 +297,12 @@ class AbstractHandler {
         await page.emulate(this.device);
       }
 
-      await page.goto(url, {
+      const response = await page.goto(url, {
         waitUntil: 'networkidle2',
         timeout: pageLoadTimeout,
       });
+
+      this.validateResponseForUrl(url, response);
 
       await page.waitForSelector('body', { timeout: 10000 });
 
@@ -323,6 +336,10 @@ class AbstractHandler {
         userAgent: await browser.userAgent(),
       };
     } catch (e) {
+      if (e instanceof RedirectError) {
+        this.#log('info', `Caught redirect: ${e.message}`);
+        throw e; // Re-throw the specific redirect error, we do not want to retry
+      }
       if (retries >= maxRetries) {
         throw e;
       }
@@ -462,12 +479,24 @@ class AbstractHandler {
       slackContext: this.config.slackContext,
       scrapeResults: results.map((result) => {
         if (result.error) {
+          const baseMetadata = {
+            url: result.url,
+            urlId: result.urlId,
+            reason: result.error.message,
+          };
+          if (result.error instanceof RedirectError) {
+            return {
+              metadata: {
+                ...baseMetadata,
+                status: 'REDIRECT',
+              },
+            };
+          }
+
           return {
             metadata: {
-              url: result.url,
-              urlId: result.urlId,
+              ...baseMetadata,
               status: 'FAILED',
-              reason: result.error,
             },
           };
         }
@@ -543,7 +572,7 @@ class AbstractHandler {
       return result;
     } catch (e) {
       this.#log('error', `Failed to scrape URL: ${e.message}`, e);
-      return { url, urlId: urlData.urlId, error: e.message };
+      return { url, urlId: urlData.urlId, error: e };
     }
   }
 

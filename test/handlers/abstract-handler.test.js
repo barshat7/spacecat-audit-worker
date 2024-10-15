@@ -412,6 +412,29 @@ describe('AbstractHandler', () => {
       expect(mockPage.setExtraHTTPHeaders.callCount).to.equal(1);
     });
 
+    it('should not throw an error for a redirect', async () => {
+      mockPage.goto.resolves({
+        url: () => 'https://redirected-url.com',
+        request: () => ({
+          redirectChain: () => [{
+            url: 'https://example.com',
+            method: 'GET',
+            headers: { 'User-Agent': 'Mozilla/5.0' },
+          }], // Simulate a redirect chain
+        }),
+      });
+      createBrowserStub([mockPage]);
+
+      const results = await handler.process([{ url: 'https://example.com', urlId: '1234' }]);
+      expect(results.length).to.equal(1);
+      expect(results[0].error).to.equal(undefined);
+      const sqsMessage = mockServices.sqsClient.sendMessage.firstCall.args[1];
+      expect(mockServices.sqsClient.sendMessage.firstCall.args[1].jobId).to.equal('test-job-id');
+      expect(sqsMessage.scrapeResults[0].metadata.url).to.equal('https://example.com');
+      expect(sqsMessage.scrapeResults[0].metadata.status).to.equal('COMPLETE');
+      expect(sqsMessage.scrapeResults[0].location).to.equal('scrapes/test-job-id/scrape.json');
+    });
+
     it('returns error if s3 throws an error', async () => {
       mockServices.s3Client.send = sinon.stub().rejects(new Error('Test error'));
       const pageStub = createPageStub({ data: 'scraped data' });
@@ -420,7 +443,7 @@ describe('AbstractHandler', () => {
       const results = await handler.process([{ url: 'https://example.com' }]);
 
       expect(results.length).to.equal(1);
-      expect(results[0].error).to.deep.equal('Test error');
+      expect(results[0].error.message).to.deep.equal('Test error');
     });
   });
 
