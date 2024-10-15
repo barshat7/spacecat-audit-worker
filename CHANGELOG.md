@@ -1,3 +1,10 @@
+# [1.14.0](https://github.com/adobe/spacecat-content-scraper/compare/v1.13.2...v1.14.0) (2024-10-15)
+
+
+### Features
+
+* Report redirects from the content-scraper ([#166](https://github.com/adobe/spacecat-content-scraper/issues/166)) ([d456f43](https://github.com/adobe/spacecat-content-scraper/commit/d456f430493251797bfd16158698f0d786408c5c))
+
 ## [1.13.2](https://github.com/adobe/spacecat-content-scraper/compare/v1.13.1...v1.13.2) (2024-10-15)
 
 
