@@ -1,3 +1,10 @@
+## [1.14.5](https://github.com/adobe/spacecat-content-scraper/compare/v1.14.4...v1.14.5) (2024-10-22)
+
+
+### Bug Fixes
+
+* instrument s3 with aws xray ([#178](https://github.com/adobe/spacecat-content-scraper/issues/178)) ([2a3ce20](https://github.com/adobe/spacecat-content-scraper/commit/2a3ce20c3c783113aed594549bfc670a95595a51))
+
 ## [1.14.4](https://github.com/adobe/spacecat-content-scraper/compare/v1.14.3...v1.14.4) (2024-10-21)
 
 
