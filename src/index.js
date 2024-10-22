@@ -10,6 +10,7 @@
  * governing permissions and limitations under the License.
  */
 
+import AWSXRay from 'aws-xray-sdk';
 import { S3Client } from '@aws-sdk/client-s3';
 import wrap from '@adobe/helix-shared-wrap';
 import bodyData from '@adobe/helix-shared-body-data';
@@ -55,7 +56,7 @@ const serviceProvider = (fn) => async (req, context) => {
   if (!isObject(context.attributes.services)) {
     context.attributes.services = {
       log: context.log,
-      s3Client: new S3Client(),
+      s3Client: AWSXRay.captureAWSv3Client(new S3Client()),
       slackClient: BaseSlackClient.createFrom(
         context,
         SLACK_TARGETS.WORKSPACE_INTERNAL,
