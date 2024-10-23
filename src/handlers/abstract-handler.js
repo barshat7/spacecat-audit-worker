@@ -10,6 +10,7 @@
  * governing permissions and limitations under the License.
  */
 
+import AWSXRay from 'aws-xray-sdk';
 import {
   hasText, isBoolean, isNumber, isObject, isValidUrl,
 } from '@adobe/spacecat-shared-utils';
@@ -76,7 +77,7 @@ class AbstractHandler {
     // Services
     this.log = services.log;
     this.sqsClient = services.sqsClient;
-    this.s3Client = services.s3Client;
+    this.s3Client = AWSXRay.captureAWSv3Client(services.s3Client);
     this.slackClient = services.slackClient;
 
     // Local

@@ -141,7 +141,13 @@ describe('utils.js', () => {
       const services = {
         log: console,
         sqsClient: {},
-        s3Client: {},
+        s3Client: {
+          // for aws-xray mocking
+          middlewareStack: {
+            remove: sinon.stub(),
+            use: sinon.stub(),
+          },
+        },
         slackClient: {},
       };
       const config = {

@@ -80,6 +80,11 @@ describe('ImportHandler', () => {
         sendMessage: sinon.stub().returns({ promise: () => Promise.resolve() }),
       },
       s3Client: {
+        // for aws-xray mocking
+        middlewareStack: {
+          remove: sinon.stub(),
+          use: sinon.stub(),
+        },
         send: sinon.stub().callsFake((command) => {
           if (command instanceof PutObjectCommand) {
             return Promise.resolve();
