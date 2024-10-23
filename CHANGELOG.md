@@ -1,3 +1,10 @@
+## [1.14.6](https://github.com/adobe/spacecat-content-scraper/compare/v1.14.5...v1.14.6) (2024-10-23)
+
+
+### Bug Fixes
+
+* timing of xray init ([#179](https://github.com/adobe/spacecat-content-scraper/issues/179)) ([a7ff48f](https://github.com/adobe/spacecat-content-scraper/commit/a7ff48f1b6d5b845088b8e242df8d292f1acb101))
+
 ## [1.14.5](https://github.com/adobe/spacecat-content-scraper/compare/v1.14.4...v1.14.5) (2024-10-22)
 
 
