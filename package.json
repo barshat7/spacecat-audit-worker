@@ -117,6 +117,6 @@
     "@aws-sdk/client-s3": "3.679.0",
     "aws-xray-sdk": "3.10.1",
     "typescript": "5.6.3",
-    "uuid": "^10.0.0"
+    "uuid": "^11.0.0"
   }
 }
