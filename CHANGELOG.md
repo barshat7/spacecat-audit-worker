@@ -1,3 +1,10 @@
+## [1.14.9](https://github.com/adobe/spacecat-content-scraper/compare/v1.14.8...v1.14.9) (2024-10-29)
+
+
+### Bug Fixes
+
+* **deps:** update dependency uuid to v11 ([#183](https://github.com/adobe/spacecat-content-scraper/issues/183)) ([3848aa9](https://github.com/adobe/spacecat-content-scraper/commit/3848aa9d97b51640e4a0e90e50b00f169ce60b7e))
+
 ## [1.14.8](https://github.com/adobe/spacecat-content-scraper/compare/v1.14.7...v1.14.8) (2024-10-26)
 
 
