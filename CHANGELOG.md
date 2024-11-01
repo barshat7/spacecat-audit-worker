@@ -1,3 +1,10 @@
+# [1.16.0](https://github.com/adobe/spacecat-content-scraper/compare/v1.15.0...v1.16.0) (2024-11-01)
+
+
+### Features
+
+* support passing along jobMetadata in the content-scraper ([#184](https://github.com/adobe/spacecat-content-scraper/issues/184)) ([91fa763](https://github.com/adobe/spacecat-content-scraper/commit/91fa76331dfc75f2bbf4dad98d381f076cf9d2e9))
+
 # [1.15.0](https://github.com/adobe/spacecat-content-scraper/compare/v1.14.10...v1.15.0) (2024-11-01)
 
 
