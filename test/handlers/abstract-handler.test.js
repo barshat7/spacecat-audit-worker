@@ -624,7 +624,22 @@ describe('AbstractHandler', () => {
       const pageStub2 = createPageStub(scrapeResult, 'https://example.com/path');
       createBrowserStub([pageStub1, pageStub2]);
 
-      await handler.process([{ url: 'https://example.com' }, { url: 'https://example.com/path' }]);
+      await handler.process([
+        {
+          url: 'https://example.com',
+          jobMetadata: {
+            urlNumber: 1,
+            totalUrlCount: 2,
+          },
+        },
+        {
+          url: 'https://example.com/path',
+          jobMetadata: {
+            urlNumber: 2,
+            totalUrlCount: 2,
+          },
+        },
+      ]);
 
       expect(mockServices.sqsClient.sendMessage.calledOnce).to.be.true;
       expect(mockServices.sqsClient.sendMessage.firstCall.args[0]).to.equal('https://sqs.test.com/queue');
@@ -643,6 +658,10 @@ describe('AbstractHandler', () => {
               urlId: undefined,
               url: 'https://example.com',
               status: 'COMPLETE',
+              jobMetadata: {
+                urlNumber: 1,
+                totalUrlCount: 2,
+              },
             },
           },
           {
@@ -652,6 +671,10 @@ describe('AbstractHandler', () => {
               urlId: undefined,
               url: 'https://example.com/path',
               status: 'COMPLETE',
+              jobMetadata: {
+                urlNumber: 2,
+                totalUrlCount: 2,
+              },
             },
           },
         ],

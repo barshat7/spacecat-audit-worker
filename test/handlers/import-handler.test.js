@@ -232,7 +232,16 @@ describe('ImportHandler', () => {
           }], // Simulate a redirect chain
         }),
       });
-      const results = await handler.process([{ url: 'https://example.com', urlId: '1234' }]);
+      const results = await handler.process([
+        {
+          url: 'https://example.com',
+          urlId: '1234',
+          jobMetadata: {
+            urlNumber: 1,
+            totalUrlCount: 1,
+          },
+        },
+      ]);
 
       expect(results.length).to.equal(1);
       expect(results[0].error.message).to.deep.equal('Redirected to https://redirected-url.com from https://example.com');
@@ -242,6 +251,10 @@ describe('ImportHandler', () => {
           urlId: '1234',
           status: 'REDIRECT',
           reason: 'Redirected to https://redirected-url.com from https://example.com',
+          jobMetadata: {
+            totalUrlCount: 1,
+            urlNumber: 1,
+          },
         },
       }]);
     });

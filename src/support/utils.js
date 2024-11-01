@@ -42,13 +42,14 @@ export async function sendSlackMessage(slackClient, slackContext, message) {
  * @param {object} sqsClient - The SQS client object.
  * @param {string} queueUrl - The URL of the SQS queue.
  * @param {object} message - The message to send.
+ * @param {string} messageGroupId - (Optional) The message group ID for FIFO queues.
  * @return {Promise<void>} - A promise that resolves when the message is sent.
  */
-export async function sendSQSMessage(sqsClient, queueUrl, message) {
+export async function sendSQSMessage(sqsClient, queueUrl, message, messageGroupId = undefined) {
   if (!isObject(sqsClient) || !isValidUrl(queueUrl) || !isObject(message)) {
     return;
   }
-  await sqsClient.sendMessage(queueUrl, message);
+  await sqsClient.sendMessage(queueUrl, message, messageGroupId);
 }
 
 /**

@@ -45,11 +45,23 @@ Lambda function invocations simultaneously.
     {
       "url": "https://www.example.com/page1",
       "urlId": "8697cda0-af31-4933-93c8-80d1b88272ba",
-      "status": "pending"
+      "status": "pending",
+      "jobMetadata": {
+        "urlNumber": 1,
+        "totalUrlCount": 5
+      }
     }
   ]
 }
 ```
+
+Note the `jobMetadata` object above. While there is only 1 URL in this message, the URLs relating to a given jobId can
+be split into multiple messages. The `jobMetadata` object is used to track the progress of the entire job but depends on
+a couple of constraints:
+
+- The queues used for the messages must be FIFO queues, where ordering is guaranteed.
+- The processing of the messages in a single import queue (so, relating to a single import job) must be done in 
+serial.
 
 #### Fields
 

@@ -277,11 +277,12 @@ class AbstractHandler {
   async #scrape(url, customHeaders, options, retries = 0) {
     const maxRetries = 1;
     let browser = null;
+    let page = null;
 
     try {
       this.#log('info', `Scraping URL: ${url} with retries: ${retries}`);
       browser = await this.#getBrowser();
-      const page = await browser.newPage();
+      page = await browser.newPage();
       const startScrape = Date.now();
       const enableJavascript = isBoolean(options.enableJavascript)
         ? options.enableJavascript
@@ -601,10 +602,12 @@ class AbstractHandler {
       slackContext: this.config.slackContext,
       scrapeResults: results.map((result) => {
         if (result.error) {
+          // Handle error case
           const baseMetadata = {
             url: result.url,
             urlId: result.urlId,
             reason: result.error.message,
+            jobMetadata: result.jobMetadata,
           };
           if (result.error instanceof RedirectError) {
             return {
@@ -622,6 +625,7 @@ class AbstractHandler {
             },
           };
         }
+        // Handle successful scrape
         return {
           location: result.location,
           metadata: {
@@ -629,12 +633,18 @@ class AbstractHandler {
             url: result.finalUrl,
             status: result.status || 'COMPLETE',
             path: result.scrapeResult.path,
+            jobMetadata: result.jobMetadata,
           },
         };
       }),
     };
 
-    await sendSQSMessage(this.sqsClient, this.config.completionQueueUrl, completedMessage);
+    await sendSQSMessage(
+      this.sqsClient,
+      this.config.completionQueueUrl,
+      completedMessage,
+      this.config.jobId,
+    );
     await sendSlackMessage(this.slackClient, this.config.slackContext, `Scrape complete. Scraped ${results.length} URLs. Failed to scrape ${results.filter((result) => result.error).length} URLs [${this.handlerName}]`);
   }
 
@@ -660,21 +670,40 @@ class AbstractHandler {
   async process(urlsData, customHeaders, options = {}) {
     await this.onProcessingStart(urlsData);
     const results = [];
-    for (const [index, urlData] of urlsData.entries()) {
-      // eslint-disable-next-line no-await-in-loop
-      const result = await this.processUrl(urlData, customHeaders, options);
-      results.push(result);
-      this.#log('info', `Processed URL ${index + 1}/${urlsData.length}: ${urlData.url}`);
-      // eslint-disable-next-line no-await-in-loop
-      await this.getDiskUsage();
-      this.#log('info', `Processed ${results.length} URLs...`);
+    const totalUrls = urlsData.length;
 
-      // wait for 1s before processing the next URL to avoid rate limiting
-      // eslint-disable-next-line no-await-in-loop
-      await new Promise((resolve) => {
-        setTimeout(resolve, 1000);
-      });
+    function hasAnotherUrlToProcess(index) {
+      return (index + 1) < totalUrls;
     }
+
+    try {
+      for (const [index, urlData] of urlsData.entries()) {
+        // eslint-disable-next-line no-await-in-loop
+        const result = await this.processUrl(urlData, customHeaders, options);
+        results.push(result);
+        this.#log(
+          'info',
+          `Processed URL ${index + 1}/${urlsData.length}: ${urlData.url}`,
+        );
+        // eslint-disable-next-line no-await-in-loop
+        await this.getDiskUsage();
+        this.#log('info', `Processed ${results.length} URLs...`);
+
+        // Only wait if we have another URL to process
+        if (hasAnotherUrlToProcess(index)) {
+          // wait for 1s before processing the next URL to avoid rate limiting
+          // eslint-disable-next-line no-await-in-loop
+          await new Promise((resolve) => {
+            setTimeout(resolve, 1000);
+          });
+        }
+      }
+    } finally {
+      if (this.browser) {
+        await this.#closeBrowser(this.browser);
+      }
+    }
+
     await this.onProcessingComplete(results);
     return results;
   }
@@ -689,16 +718,21 @@ class AbstractHandler {
 
     this.importPath = new URL(url).pathname.replace(/\/$/, '');
 
+    const jobMetadata = isObject(urlData.jobMetadata) ? { ...urlData.jobMetadata } : {};
+
     try {
       const result = await this.#scrape(url, customHeaders, options);
       const transformedResult = await this.transformScrapeResult(result);
       result.location = await this.#store(transformedResult, result.screenshots, options);
       result.urlId = urlData.urlId;
+      result.jobMetadata = jobMetadata;
 
       return result;
     } catch (e) {
       this.#log('error', `Failed to scrape URL: ${e.message}`, e);
-      return { url, urlId: urlData.urlId, error: e };
+      return {
+        url, urlId: urlData.urlId, jobMetadata, error: e,
+      };
     }
   }
 
