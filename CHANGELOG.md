@@ -1,3 +1,10 @@
+# [1.15.0](https://github.com/adobe/spacecat-content-scraper/compare/v1.14.10...v1.15.0) (2024-11-01)
+
+
+### Features
+
+* Add support for screenshots (SITES-26131) ([#177](https://github.com/adobe/spacecat-content-scraper/issues/177)) ([c9402af](https://github.com/adobe/spacecat-content-scraper/commit/c9402af8bff118ecc6b859e272199418b2d51416))
+
 ## [1.14.10](https://github.com/adobe/spacecat-content-scraper/compare/v1.14.9...v1.14.10) (2024-10-31)
 
 
