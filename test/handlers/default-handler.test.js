@@ -81,6 +81,20 @@ describe('DefaultHandler', () => {
     });
   });
 
+  describe('process', () => {
+    it('enables screenshots and thumbnails by default', () => {
+      // Mock AbstractHandler process method
+      sinon.stub(AbstractHandler.prototype, 'process').resolves({});
+      handler.process([]);
+
+      expect(AbstractHandler.prototype.process.calledOnce).to.be.true;
+
+      const passedOptions = AbstractHandler.prototype.process.args[0][2];
+      expect(passedOptions.takeScreenshot).to.be.true;
+      expect(passedOptions.generateThumbnail).to.be.true;
+    });
+  });
+
   describe('processUrl', () => {
     it('throws an error if URL is not provided', async () => {
       try {

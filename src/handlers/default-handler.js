@@ -35,6 +35,35 @@ class DefaultHandler extends AbstractHandler {
   static accepts(processingType) {
     return processingType === DefaultHandler.handlerName;
   }
+
+  /**
+   * Processes the given URLs.
+   * @param {Array} urlsData - The array of URL data to process.
+   * @param {object} urlsData[] - The URL data object.
+   * @param {string} urlsData[].url - The URL to process, required.
+   * @param {string} [urlsData[].urlId] - Optional URL ID.
+   * @param {string} [urlsData[].status] - Optional URL status.
+   * @param {object} [options] - The processing options.
+   * @param {boolean} [options.enableJavascript] - Whether to enable JavaScript in the browser,
+   * default is true.
+   * @param {int} [options.pageLoadTimeout] - The page load timeout in milliseconds,
+   * default is 30000.
+   * @param {boolean} [options.takeScreenshot] - Take a screenshot of the page,
+   * default is true.
+   * @param {boolean} [options.generateThumbnail] - Generate a thumbnail from the screenshot,
+   * default is true.
+   * @returns {Promise<Array>} The results of the processing.
+   * @throws Will throw an error if processing fails.
+   */
+  async process(urlsData, customHeaders, options = {}) {
+    const defaultOptions = {
+      takeScreenshot: true,
+      generateThumbnail: true,
+      ...options,
+    };
+
+    return super.process(urlsData, customHeaders, defaultOptions);
+  }
 }
 
 export default DefaultHandler;

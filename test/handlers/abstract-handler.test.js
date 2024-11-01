@@ -23,6 +23,8 @@ import puppeteer from 'puppeteer-extra';
 import { GetObjectCommand, PutObjectCommand } from '@aws-sdk/client-s3';
 import fs from 'fs';
 import { describe } from 'mocha';
+import sharp from 'sharp';
+import { KnownDevices } from 'puppeteer-core';
 import AbstractHandler from '../../src/handlers/abstract-handler.js';
 
 chai.use(chaiAsPromised);
@@ -60,6 +62,10 @@ const createPageStub = (scrapeResult = {}, url = 'https://example.com') => ({
   evaluate: sinon.stub().resolves(scrapeResult),
   url: sinon.stub().returns(url),
   isClosed: sinon.stub().returns(false),
+  setViewport: sinon.stub(),
+  setUserAgent: sinon.stub(),
+  screenshot: sinon.stub().resolves('testBuffer'),
+  viewport: sinon.stub().returns({ width: 1920, height: 1080 }),
 });
 
 describe('AbstractHandler', () => {
@@ -328,7 +334,7 @@ describe('AbstractHandler', () => {
 
     it('resets browser if there is a resource error', async () => {
       const pageStub = createPageStub({ data: 'scraped data' });
-      pageStub.emulate.rejects(new Error('net::ERR_INSUFFICIENT_RESOURCES'));
+      pageStub.setViewport.rejects(new Error('net::ERR_INSUFFICIENT_RESOURCES'));
       const browser = createBrowserStub([pageStub]);
       await handler.process([{ url: 'https://example.com' }]);
       expect(browser.calledTwice).to.be.true;
@@ -450,6 +456,110 @@ describe('AbstractHandler', () => {
       expect(results.length).to.equal(1);
       expect(results[0].error.message).to.deep.equal('Test error');
     });
+
+    it('adds additional devices with screenshots enabled', async () => {
+      createBrowserStub([mockPage]);
+      const options = { takeScreenshot: true, generateThumbnail: false };
+      const testHandler = new TestHandler('default', mockConfig, mockServices);
+      await testHandler.process([{ url: 'https://example.com' }], undefined, options);
+
+      expect(mockPage.setUserAgent.calledOnceWith(KnownDevices['iPhone 6'].userAgent)).to.be.true;
+      expect(mockPage.setViewport.firstCall
+        .calledWithExactly({ ...KnownDevices['iPhone 6'].viewport, deviceScaleFactor: 1 }))
+        .to.be.true;
+      expect(mockPage.setViewport.secondCall
+        .calledWithExactly({ ...chromium.defaultViewport, deviceScaleFactor: 1 }))
+        .to.be.true;
+    });
+
+    it('respects the device configuration', async () => {
+      createBrowserStub([mockPage]);
+      const options = { takeScreenshot: false, generateThumbnail: false };
+      const testHandler = new TestHandler('default', { ...mockConfig, device: 'iPad landscape' }, mockServices);
+      await testHandler.process([{ url: 'https://example.com' }], undefined, options);
+
+      expect(mockPage.setUserAgent.calledOnceWith(KnownDevices['iPad landscape'].userAgent)).to.be.true;
+      expect(mockPage.setViewport
+        .calledOnceWithExactly({ ...KnownDevices['iPad landscape'].viewport, deviceScaleFactor: 1 }))
+        .to.be.true;
+    });
+
+    it('takes a screenshot without thumbnail', async () => {
+      createBrowserStub([mockPage]);
+      const options = { takeScreenshot: true, generateThumbnail: false };
+      const testHandler = new TestHandler('default', mockConfig, mockServices);
+      const results = await testHandler.process([{ url: 'https://example.com' }], undefined, options);
+
+      // Two screenshots for mobile and desktop
+      expect(mockPage.screenshot.calledTwice).to.be.true;
+
+      // Validate that screenshots only has two entries, one for mobile, one for desktop
+      expect(results[0].screenshots.length).to.equal(2);
+      expect(results[0].screenshots[0].fileName).to.equal('screenshot-iphone-6.png');
+      expect(results[0].screenshots[1].fileName).to.equal('screenshot-desktop.png');
+    });
+
+    it('takes a screenshot with thumbnail', async () => {
+      createBrowserStub([mockPage]);
+
+      // Mock sharp calls
+      const sharpStub = sinon.stub(sharp.prototype);
+      sharpStub.toFormat.returnsThis();
+      sharpStub.extract.returnsThis();
+      sharpStub.resize.returnsThis();
+      sharpStub.toBuffer.resolves('testBuffer');
+
+      const options = { takeScreenshot: true, generateThumbnail: true };
+      const testHandler = new TestHandler('default', mockConfig, mockServices);
+      const results = await testHandler.process([{ url: 'https://example.com' }], undefined, options);
+
+      // Two screenshots for mobile and desktop
+      expect(mockPage.screenshot.calledTwice).to.be.true;
+
+      // Validate that sharp library was called
+      expect(sharpStub.toFormat.calledTwice).to.be.true;
+      expect(sharpStub.extract.calledTwice).to.be.true;
+      expect(sharpStub.resize.calledTwice).to.be.true;
+      expect(sharpStub.toBuffer.calledTwice).to.be.true;
+
+      // Validate that screenshots only has two entries, one for mobile, one for desktop
+      expect(results[0].screenshots.length).to.equal(4);
+      expect(results[0].screenshots[0].fileName).to.equal('screenshot-iphone-6.png');
+      expect(results[0].screenshots[1].fileName).to.equal('screenshot-iphone-6-thumbnail.png');
+      expect(results[0].screenshots[2].fileName).to.equal('screenshot-desktop.png');
+      expect(results[0].screenshots[3].fileName).to.equal('screenshot-desktop-thumbnail.png');
+    });
+
+    it('does not return a screenshot if taking a screenshot throws an error', async () => {
+      const pageStub = createPageStub({ data: 'scraped data' });
+      pageStub.screenshot.rejects(new Error('Test error'));
+      createBrowserStub([pageStub]);
+      const options = { takeScreenshot: true, generateThumbnail: false };
+      const testHandler = new TestHandler('default', mockConfig, mockServices);
+      const results = await testHandler.process([{ url: 'https://example.com' }], undefined, options);
+
+      expect(results[0].screenshots.length).to.equal(0);
+    });
+
+    it('does not return a thumbnail if generating a thumbnail throws an error', async () => {
+      createBrowserStub([mockPage]);
+
+      // Mock sharp calls
+      const sharpStub = sinon.stub(sharp.prototype);
+      sharpStub.extract.rejects(new Error('Test error'));
+
+      const options = { takeScreenshot: true, generateThumbnail: true };
+      const testHandler = new TestHandler('default', mockConfig, mockServices);
+      const results = await testHandler.process([{ url: 'https://example.com' }], undefined, options);
+
+      // Two screenshots for mobile and desktop
+      expect(mockPage.screenshot.calledTwice).to.be.true;
+
+      // Validate that screenshots only has two entries, one for mobile, one for desktop
+      expect(results[0].screenshots.length).to.equal(2);
+      expect(results[0].screenshots[0].fileName).to.equal('screenshot-iphone-6.png');
+      expect(results[0].screenshots[1].fileName).to.equal('screenshot-desktop.png');
+    });
   });
 
   describe('Storage', () => {
@@ -470,6 +580,28 @@ describe('AbstractHandler', () => {
       expect(results[0].scrapeResult).to.deep.equal(scrapeResult);
       expect(mockServices.s3Client.send.calledOnce).to.be.true;
     });
+
+    it('stores screenshots in S3', async () => {
+      createBrowserStub([mockPage]);
+
+      // Mock sharp calls
+      const sharpStub = sinon.stub(sharp.prototype);
+      sharpStub.toFormat.returnsThis();
+      sharpStub.extract.returnsThis();
+      sharpStub.resize.returnsThis();
+      sharpStub.toBuffer.resolves('testBuffer');
+
+      const options = { takeScreenshot: true, generateThumbnail: true };
+      const testHandler = new TestHandler('default', mockConfig, mockServices);
+      const results = await testHandler.process([{ url: 'https://example.com' }], undefined, options);
+
+      // Validate that screenshots only has two entries, one for mobile, one for desktop
+      expect(results[0].screenshots.length).to.equal(4);
+
+      // Expect five uploads, four screenshots and one scrape
+      expect(mockServices.s3Client.send.callCount).to.equal(5);
+    });
+
     it('skips storage if config.skipStorage is set to true', async () => {
       const scrapeResult = { data: 'scraped data' };
 

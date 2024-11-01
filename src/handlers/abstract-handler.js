@@ -26,9 +26,13 @@ import chromium from '@sparticuz/chromium';
 // eslint-disable-next-line import/no-extraneous-dependencies
 import puppeteer from 'puppeteer-extra';
 // eslint-disable-next-line import/no-extraneous-dependencies
+import { KnownDevices } from 'puppeteer-core';
+// eslint-disable-next-line import/no-extraneous-dependencies
 import StealthPlugin from 'puppeteer-extra-plugin-stealth';
 // eslint-disable-next-line import/no-extraneous-dependencies
 import AdblockerPlugin from 'puppeteer-extra-plugin-adblocker';
+// eslint-disable-next-line import/no-extraneous-dependencies
+import sharp from 'sharp';
 
 import { promisify } from 'util';
 import { exec } from 'child_process';
@@ -286,6 +290,26 @@ class AbstractHandler {
         ? options.pageLoadTimeout
         : 30000;
 
+      const { takeScreenshot, generateThumbnail } = options;
+      const devices = [];
+      if (takeScreenshot && !this.config.skipStorage) {
+        // Add mobile and desktop viewports for screenshots
+        devices.push('iPhone 6', 'desktop');
+      }
+
+      // Add additional viewport if requested and not already added
+      if (this.device && !devices.includes(this.device) && this.device in KnownDevices) {
+        devices.push(this.device);
+      }
+
+      // Fallback to desktop if no device is selected
+      if (devices.length === 0) {
+        devices.push('desktop');
+      }
+      this.#log('info', `Scraping URL: ${url} for devices: ${devices.join(', ')}`);
+
+      const screenshots = [];
+
       if (!enableJavascript) {
         await page.setJavaScriptEnabled(false);
       }
@@ -294,18 +318,90 @@ class AbstractHandler {
         await page.setExtraHTTPHeaders(customHeaders);
       }
 
-      if (this.device) {
-        await page.emulate(this.device);
+      // Do screenshots for all devices
+      /* eslint-disable no-await-in-loop */
+      let device;
+      for (device of devices) {
+        const knownDevice = KnownDevices[device];
+        const deviceName = device.replace(/\s/g, '-').toLowerCase();
+
+        // Set user agent
+        const userAgent = device !== 'desktop' ? knownDevice.userAgent : false;
+        if (userAgent) {
+          await page.setUserAgent(userAgent);
+        }
+
+        // Set viewport
+        const viewport = device === 'desktop' ? chromium.defaultViewport : knownDevice.viewport;
+        await page.setViewport({
+          ...viewport,
+          // Keep this at 1 as puppeteer fullPage screenshots do not work with higher scaling
+          deviceScaleFactor: 1,
+        });
+
+        // Wait for page loaded
+        const response = await page.goto(url, {
+          waitUntil: 'networkidle2',
+          timeout: pageLoadTimeout,
+        });
+
+        this.validateResponseForUrl(url, response);
+
+        await page.waitForSelector('body', { timeout: 10000 });
+
+        // Take screenshot
+        if (takeScreenshot && !this.config.skipStorage) {
+          let screenshotBinary;
+          const segment = AWSXRay.getSegment() || new AWSXRay.Segment('Screenshots');
+          const screenshotSubsegment = segment.addNewSubsegment('Taking Screenshot');
+          try {
+            const startScreenshot = Date.now();
+            screenshotBinary = await page.screenshot({
+              fullPage: true,
+              type: 'png',
+              encoding: 'binary',
+            });
+            const endScreenshot = Date.now();
+            const screenshotTime = endScreenshot - startScreenshot;
+            screenshots.push({
+              fileName: `screenshot-${deviceName}.png`, binary: screenshotBinary, contentType: 'image/png', screenshotTime,
+            });
+            screenshotSubsegment.close();
+          } catch (e) {
+            this.#log('error', `Error taking screenshot: ${e.message}`, e);
+            screenshotSubsegment.addError(e);
+            screenshotSubsegment.close();
+          }
+
+          // Crop and resize screenshot into thumbnail
+          if (generateThumbnail && screenshotBinary) {
+            const thumbnailSubsegment = segment.addNewSubsegment('Generating Thumbnail');
+            try {
+              const startThumbnail = Date.now();
+              const thumbnailBinary = await sharp(screenshotBinary)
+                .toFormat('png')
+                .extract({
+                  left: 0,
+                  top: 0,
+                  width: page.viewport().width,
+                  height: page.viewport().height,
+                })
+                .resize(200)
+                .toBuffer();
+              const endThumbnail = Date.now();
+              const thumbnailTime = endThumbnail - startThumbnail;
+              screenshots.push({
+                fileName: `screenshot-${deviceName}-thumbnail.png`, binary: thumbnailBinary, contentType: 'image/png', screenshotTime: thumbnailTime,
+              });
+              thumbnailSubsegment.close();
+            } catch (e) {
+              this.#log('error', `Error generating thumbnail: ${e.message}`, e);
+              thumbnailSubsegment.addError(e);
+              thumbnailSubsegment.close();
+            }
+          }
+        }
       }
-
-      const response = await page.goto(url, {
-        waitUntil: 'networkidle2',
-        timeout: pageLoadTimeout,
-      });
-
-      this.validateResponseForUrl(url, response);
-
-      await page.waitForSelector('body', { timeout: 10000 });
 
       const pageInjectCode = this.#getPageInjectCode();
       if (hasText(pageInjectCode)) {
@@ -332,9 +428,11 @@ class AbstractHandler {
       return {
         finalUrl: page.url(),
         scrapeResult,
+        screenshots,
         scrapeTime,
         scrapedAt: endScrape,
         userAgent: await browser.userAgent(),
+        device,
       };
     } catch (e) {
       if (e instanceof RedirectError) {
@@ -369,11 +467,12 @@ class AbstractHandler {
 
   /**
    * Gets the storage path for the scraped content.
+   * @param {string} fileName - The name of the file.
    * @returns {Promise<string>} The storage path.
    */
   // eslint-disable-next-line no-unused-vars
-  async getStoragePath() {
-    return path.join(`scrapes/${this.config.jobId}`, this.importPath ? `${this.importPath}/scrape.json` : 'scrape.json');
+  async getStoragePath(fileName) {
+    return path.join(`scrapes/${this.config.jobId}`, this.importPath ? this.importPath : '', fileName);
   }
 
   /**
@@ -383,7 +482,15 @@ class AbstractHandler {
    */
   // eslint-disable-next-line class-methods-use-this
   async transformScrapeResult(scrapeResult) {
-    return JSON.stringify(scrapeResult, null, 2);
+    const transformedResult = { ...scrapeResult };
+    // Remove binary from screenshots object
+    transformedResult.screenshots = transformedResult.screenshots.map((screenshot) => {
+      // eslint-disable-next-line no-unused-vars
+      const { binary, ...rest } = screenshot;
+      return rest;
+    });
+
+    return JSON.stringify(transformedResult, null, 2);
   }
 
   /**
@@ -401,30 +508,44 @@ class AbstractHandler {
    * Stores the scraped content in S3.
    * @private
    * @param {Object} content - The content to store.
+   * @param {Array} screenshots - Any additional files to store.
    * @param {Object} options - The storage options.
    * @returns {Promise<string>} The S3 path where the content was stored or null if skipped.
    * @throws Will throw an error if storing fails.
    */
   // eslint-disable-next-line no-unused-vars
-  async #store(content, options) {
+  async #store(content, screenshots, options) {
     if (this.config.skipStorage) {
       this.#log('info', 'Skipping storage by config');
       return null;
     }
 
-    const storageConfig = this.getStorageConfig();
-    const filePath = await this.getStoragePath();
+    const commands = [];
 
-    const command = new PutObjectCommand({
+    for (const screenshot of screenshots) {
+      const { fileName, binary, contentType } = screenshot;
+      const storagePath = await this.getStoragePath(fileName);
+      commands.push(new PutObjectCommand({
+        Bucket: this.config.s3BucketName,
+        Key: storagePath,
+        Body: binary,
+        ContentType: contentType,
+      }));
+    }
+
+    const storageConfig = this.getStorageConfig();
+
+    const filePath = await this.getStoragePath('scrape.json');
+    commands.push(new PutObjectCommand({
       Bucket: this.config.s3BucketName,
       Key: filePath,
       Body: content,
       ContentType: storageConfig.contentType,
-    });
+    }));
 
-    const response = await this.s3Client.send(command);
-
-    this.#log('info', `Successfully uploaded to ${filePath}. Response: ${JSON.stringify(response)}`);
+    const responses = await Promise.all(commands.map((command) => this.s3Client.send(command)));
+    const lastResponse = responses[responses.length - 1];
+    this.#log('info', `Successfully uploaded to ${filePath}. Response: ${JSON.stringify(lastResponse)}`);
 
     return filePath;
   }
@@ -529,6 +650,10 @@ class AbstractHandler {
    * default is true.
    * @param {int} [options.pageLoadTimeout] - The page load timeout in milliseconds,
    * default is 30000.
+   * @param {boolean} [options.takeScreenshot] - Take a screenshot of the page,
+   * default is false.
+   * @param {boolean} [options.generateThumbnail] - Generate a thumbnail from the screenshot,
+   * default is false.
    * @returns {Promise<Array>} The results of the processing.
    * @throws Will throw an error if processing fails.
    */
@@ -567,7 +692,7 @@ class AbstractHandler {
     try {
       const result = await this.#scrape(url, customHeaders, options);
       const transformedResult = await this.transformScrapeResult(result);
-      result.location = await this.#store(transformedResult, options);
+      result.location = await this.#store(transformedResult, result.screenshots, options);
       result.urlId = urlData.urlId;
 
       return result;

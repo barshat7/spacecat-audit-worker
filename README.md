@@ -37,7 +37,9 @@ Lambda function invocations simultaneously.
   "skipStorage": false,
   "options": {
     "pageLoadTimeout": 100,
-    "enableJavaScript": true
+    "enableJavaScript": true,
+    "takeScreenshot": true,
+    "generateThumbnail": true,
   },
   "urls": [
     {
@@ -64,6 +66,9 @@ Lambda function invocations simultaneously.
       decorated by client side JavaScript. Default is `100` milliseconds.
     - **enableJavaScript**: (Optional) A boolean indicating whether JavaScript should be enabled in the browser context.
       Default is `true`.
+    - **takeScreenshot**: (Optional) A boolean indicating whether to take a screenshot of the page. Default is `false`.
+    - **generateThumbnail**: (Optional) A boolean indicating whether to additionally generate thumbnails of the screenshots of the page. Default is
+      `false`.
 - **urls**: An array of URL objects to be processed. Only the first URL in the array will be processed.
     - **url**: A string representing the URL to be scraped. This is a required field.
     - **urlId**: (Optional) A unique identifier for the URL. This is a string, typically a UUID.

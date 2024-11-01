@@ -45,6 +45,8 @@ const createPageStub = (scrapeResult = {}, url = 'https://libre-software.net/ima
   evaluate: sinon.stub().resolves(scrapeResult),
   url: sinon.stub().returns(url),
   isClosed: sinon.stub().returns(false),
+  setViewport: sinon.stub(),
+  setUserAgent: sinon.stub(),
 });
 
 describe('ImportHandler', () => {

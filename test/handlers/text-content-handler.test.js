@@ -45,6 +45,8 @@ const createPageStub = (scrapeResults = {}, url = 'https://example.com') => ({
   evaluate: sinon.stub().callsFake(async () => scrapeResults[url] || {}),
   url: sinon.stub().returns(url),
   isClosed: sinon.stub().returns(false),
+  setViewport: sinon.stub(),
+  setUserAgent: sinon.stub(),
 });
 
 describe('TextContentHandler', () => {

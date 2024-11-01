@@ -137,3 +137,7 @@ dist
 static/inject/import.js
 
 junit
+
+aws
+
+tmp/
