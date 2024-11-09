@@ -66,7 +66,7 @@
   "devDependencies": {
     "@adobe/eslint-config-helix": "2.0.8",
     "@adobe/fetch": "4.1.9",
-    "@adobe/helix-deploy": "12.3.4",
+    "@adobe/helix-deploy": "12.3.5",
     "@adobe/helix-universal": "5.0.6",
     "@adobe/semantic-release-coralogix": "1.1.32",
     "@adobe/semantic-release-skms-cmr": "1.1.5",
@@ -105,7 +105,7 @@
     "reporter-options": "configFile=.mocha-multi.json"
   },
   "dependencies": {
-    "@adobe/helix-md2docx": "2.1.81",
+    "@adobe/helix-md2docx": "2.1.82",
     "@adobe/helix-shared-body-data": "2.1.7",
     "@adobe/helix-shared-secrets": "2.2.9",
     "@adobe/helix-shared-wrap": "2.0.2",
