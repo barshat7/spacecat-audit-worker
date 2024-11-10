@@ -1,6 +1,6 @@
 {
   "name": "@adobe/spacecat-content-scraper",
-  "version": "1.16.6",
+  "version": "1.16.7",
   "description": "SpaceCat Content Scraper",
   "main": "src/index.js",
   "type": "module",
