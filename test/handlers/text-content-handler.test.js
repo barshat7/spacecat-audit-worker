@@ -12,7 +12,7 @@
 
 /* eslint-env mocha */
 
-import chai from 'chai';
+import { expect, use } from 'chai';
 import chaiAsPromised from 'chai-as-promised';
 import sinon from 'sinon';
 import puppeteer from 'puppeteer-extra';
@@ -20,9 +20,7 @@ import puppeteer from 'puppeteer-extra';
 import { GetObjectCommand, PutObjectCommand } from '@aws-sdk/client-s3';
 import TextContentHandler from '../../src/handlers/text-content-handler.js';
 
-chai.use(chaiAsPromised);
-
-const { expect } = chai;
+use(chaiAsPromised);
 
 const createBrowserStub = (pageStubs) => sinon.stub(puppeteer, 'launch').resolves({
   newPage: sinon.stub().callsFake(() => {

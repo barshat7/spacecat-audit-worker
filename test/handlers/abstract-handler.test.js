@@ -14,7 +14,7 @@
 
 import chromium from '@sparticuz/chromium';
 
-import chai from 'chai';
+import { expect, use } from 'chai';
 import chaiAsPromised from 'chai-as-promised';
 import sinon from 'sinon';
 import nock from 'nock';
@@ -27,9 +27,7 @@ import sharp from 'sharp';
 import { KnownDevices } from 'puppeteer-core';
 import AbstractHandler from '../../src/handlers/abstract-handler.js';
 
-chai.use(chaiAsPromised);
-
-const { expect } = chai;
+use(chaiAsPromised);
 
 class TestHandler extends AbstractHandler {
   getDiskUsage() {
