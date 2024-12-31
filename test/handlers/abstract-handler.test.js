@@ -16,6 +16,7 @@ import chromium from '@sparticuz/chromium';
 
 import { expect, use } from 'chai';
 import chaiAsPromised from 'chai-as-promised';
+import sinonChai from 'sinon-chai';
 import sinon from 'sinon';
 import nock from 'nock';
 import puppeteer from 'puppeteer-extra';
@@ -28,6 +29,7 @@ import { KnownDevices } from 'puppeteer-core';
 import AbstractHandler from '../../src/handlers/abstract-handler.js';
 
 use(chaiAsPromised);
+use(sinonChai);
 
 class TestHandler extends AbstractHandler {
   getDiskUsage() {
@@ -181,6 +183,7 @@ describe('AbstractHandler', () => {
           '--no-default-browser-check',
           '--no-pings',
           '--single-process',
+          '--font-render-hinting=none',
           '--disable-features=Translate,BackForwardCache,AcceptCHFrame,MediaRouter,OptimizationHints,AudioServiceOutOfProcess,IsolateOrigins,site-per-process',
           '--enable-features=NetworkServiceInProcess2,SharedArrayBuffer',
           '--hide-scrollbars',
@@ -195,7 +198,7 @@ describe('AbstractHandler', () => {
           '--disable-web-security',
           '--no-sandbox',
           '--no-zygote',
-          "--headless='new'",
+          "--headless='shell'",
         ],
         defaultViewport: {
           deviceScaleFactor: 1,
@@ -212,8 +215,7 @@ describe('AbstractHandler', () => {
 
       await handler.process([{ url: 'https://example.com' }]);
 
-      expect(browserLaunchStub.calledOnce).to.be.true;
-      expect(browserLaunchStub.calledWith(expectedOptions)).to.be.true;
+      expect(browserLaunchStub).to.have.been.calledOnceWithExactly(expectedOptions);
     });
 
     it('launches the browser with correct options in non-local mode', async () => {
@@ -252,6 +254,7 @@ describe('AbstractHandler', () => {
           '--no-default-browser-check',
           '--no-pings',
           '--single-process',
+          '--font-render-hinting=none',
           '--disable-features=Translate,BackForwardCache,AcceptCHFrame,MediaRouter,OptimizationHints,AudioServiceOutOfProcess,IsolateOrigins,site-per-process',
           '--enable-features=NetworkServiceInProcess2,SharedArrayBuffer',
           '--hide-scrollbars',
@@ -266,7 +269,7 @@ describe('AbstractHandler', () => {
           '--disable-web-security',
           '--no-sandbox',
           '--no-zygote',
-          "--headless='new'",
+          "--headless='shell'",
         ],
         defaultViewport: {
           deviceScaleFactor: 1,
@@ -277,7 +280,7 @@ describe('AbstractHandler', () => {
           width: 1920,
         },
         executablePath: '/some/test/path',
-        headless: 'new',
+        headless: 'shell',
       };
 
       sinon.stub(chromium, 'executablePath').resolves('/some/test/path');
@@ -287,8 +290,7 @@ describe('AbstractHandler', () => {
       await handler.process([{ url: 'https://example.com' }]);
       delete process.env.AWS_EXECUTION_ENV;
 
-      expect(browserLaunchStub.calledOnce).to.be.true;
-      expect(browserLaunchStub.calledWith(expectedOptions)).to.be.true;
+      expect(browserLaunchStub).to.have.been.calledOnceWithExactly(expectedOptions);
     });
 
     it('returns error when invalid URL is provided', async () => {
