@@ -116,7 +116,7 @@
     "@adobe/helix-shared-wrap": "2.0.2",
     "@adobe/helix-status": "10.1.5",
     "@adobe/helix-universal-logger": "3.0.23",
-    "@adobe/spacecat-shared-http-utils": "1.9.2",
+    "@adobe/spacecat-shared-http-utils": "1.9.3",
     "@adobe/spacecat-shared-slack-client": "1.5.2",
     "@adobe/spacecat-shared-utils": "1.25.5",
     "@aws-sdk/client-s3": "3.722.0",
