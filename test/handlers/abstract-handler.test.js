@@ -405,11 +405,16 @@ describe('AbstractHandler', () => {
     it('sets options', async () => {
       createBrowserStub([mockPage]);
       const importHandler = new TestHandler('import', mockConfig, mockServices);
-      const options = { pageLoadTimeout: 10, enableJavascript: false };
+      const options = {
+        pageLoadTimeout: 10,
+        enableJavascript: false,
+        waitForSelector: 'some-selector',
+      };
 
       await importHandler.process([{ url: 'https://example.com' }], undefined, options);
 
       expect(mockPage.setJavaScriptEnabled.calledWith(false)).to.be.true;
+      expect(mockPage.waitForSelector.calledWith('some-selector', { timeout: 10000 })).to.be.true;
       expect(mockPage.goto.calledWith('https://example.com', { waitUntil: 'networkidle2', timeout: 10 })).to.be.true;
     });
 

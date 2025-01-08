@@ -348,7 +348,8 @@ class AbstractHandler {
 
         this.validateResponseForUrl(url, response);
 
-        await page.waitForSelector('body', { timeout: 10000 });
+        const selectorToWait = hasText(options.waitForSelector) ? options.waitForSelector : 'body';
+        await page.waitForSelector(selectorToWait, { timeout: 10000 });
 
         // Take screenshot
         if (takeScreenshot && !this.config.skipStorage) {
