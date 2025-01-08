@@ -1,3 +1,10 @@
+# [1.17.0](https://github.com/adobe/spacecat-content-scraper/compare/v1.16.41...v1.17.0) (2025-01-08)
+
+
+### Features
+
+* wait for selector option ([#241](https://github.com/adobe/spacecat-content-scraper/issues/241)) ([6fa456b](https://github.com/adobe/spacecat-content-scraper/commit/6fa456b97c8e5a0dac0c6d49c8e6619bd56376f2))
+
 ## [1.16.41](https://github.com/adobe/spacecat-content-scraper/compare/v1.16.40...v1.16.41) (2025-01-06)
 
 
