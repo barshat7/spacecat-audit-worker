@@ -1,3 +1,10 @@
+## [1.17.1](https://github.com/adobe/spacecat-content-scraper/compare/v1.17.0...v1.17.1) (2025-01-09)
+
+
+### Bug Fixes
+
+* no browser close on net error ([#242](https://github.com/adobe/spacecat-content-scraper/issues/242)) ([3b681e6](https://github.com/adobe/spacecat-content-scraper/commit/3b681e6bc34e317cdae750e026b7d9bf3b656fff))
+
 # [1.17.0](https://github.com/adobe/spacecat-content-scraper/compare/v1.16.41...v1.17.0) (2025-01-08)
 
 
