@@ -50,6 +50,18 @@ describe('DefaultHandler', () => {
         postMessage: sinon.stub().resolves({}),
       },
     };
+
+    mockServices.xray = {
+      captureAWSv3Client: sinon.stub().returns(mockServices.s3Client),
+      getSegment: sinon.stub(),
+      Segment: sinon.stub().returns({
+        addNewSubsegment: sinon.stub().returns({
+          addError: sinon.stub(),
+          close: sinon.stub(),
+        }),
+      }),
+    };
+
     handler = new DefaultHandler(mockConfig, mockServices);
   });
 

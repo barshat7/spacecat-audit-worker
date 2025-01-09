@@ -27,11 +27,11 @@ use(chaiAsPromised);
 const createBrowserStub = (pageStub) => sinon.stub(puppeteer, 'launch').resolves({
   newPage: () => pageStub,
   close: sinon.stub(),
+  pages: sinon.stub().resolves([pageStub]),
   userAgent: async () => 'test-user-agent',
   process: () => ({
     spawnargs: ['--user-data-dir=/tmp/puppeteer_dev_profile'],
   }),
-
 });
 
 const createPageStub = (scrapeResult = {}, url = 'https://libre-software.net/image/avif-test/') => ({
@@ -98,6 +98,17 @@ describe('ImportHandler', () => {
       slackClient: {
         postMessage: sinon.stub().returns({ promise: () => Promise.resolve() }),
       },
+    };
+
+    mockServices.xray = {
+      captureAWSv3Client: sinon.stub().returns(mockServices.s3Client),
+      getSegment: sinon.stub(),
+      Segment: sinon.stub().returns({
+        addNewSubsegment: sinon.stub().returns({
+          addError: sinon.stub(),
+          close: sinon.stub(),
+        }),
+      }),
     };
 
     handler = new ImportHandler(mockConfig, mockServices);

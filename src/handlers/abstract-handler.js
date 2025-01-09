@@ -10,7 +10,6 @@
  * governing permissions and limitations under the License.
  */
 
-import AWSXRay from 'aws-xray-sdk';
 import {
   hasText, isBoolean, isNumber, isObject, isValidUrl,
 } from '@adobe/spacecat-shared-utils';
@@ -26,7 +25,7 @@ import chromium from '@sparticuz/chromium';
 // eslint-disable-next-line import/no-extraneous-dependencies
 import puppeteer from 'puppeteer-extra';
 // eslint-disable-next-line import/no-extraneous-dependencies
-import { KnownDevices } from 'puppeteer-core';
+import { KnownDevices, PuppeteerError } from 'puppeteer-core';
 // eslint-disable-next-line import/no-extraneous-dependencies
 import StealthPlugin from 'puppeteer-extra-plugin-stealth';
 // eslint-disable-next-line import/no-extraneous-dependencies
@@ -46,6 +45,10 @@ import RedirectError from '../support/redirect-error.js';
 puppeteer.use(StealthPlugin());
 puppeteer.use(AdblockerPlugin({ blockTrackers: true }));
 
+chromium.setGraphicsMode = false;
+
+const DEFAULT_USER_AGENT = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36';
+
 /**
  * AbstractHandler class that serves as the base class for all specific handlers.
  * Provides common functionality for configuration validation, service validation,
@@ -56,18 +59,20 @@ class AbstractHandler {
    * Creates an instance of AbstractHandler.
    * @param {string} handlerName - The name of the handler.
    * @param {Object} config - The configuration object for the handler.
+   * @param {Object} config.completionQueueUrl - The SQS completion queue URL.
+   * @param {Object} config.device - The device to emulate.
    * @param {Object} config.jobId - The job ID.
    * @param {Object} config.s3BucketName - The S3 bucket name.
-   * @param {Object} config.completionQueueUrl - The SQS completion queue URL.
-   * @param {Object} config.slackContext - The Slack context object.
    * @param {Object} config.skipMessage - Whether to skip sending the completion message.
    * @param {Object} config.skipStorage - Whether to skip storing the scraped content.
-   * @param {Object} config.device - The device to emulate.
+   * @param {Object} config.slackContext - The Slack context object.
+   * @param {Object} config.userAgent - The user agent to use.
    * @param {Object} services - The services required by the handler.
    * @param {Object} services.log - Logging service.
    * @param {Object} services.sqsClient - SQS client service.
    * @param {Object} services.s3Client - S3 client service.
    * @param {Object} services.slackClient - Slack client service.
+   * @param {Object} services.xray - AWS X-Ray service.
    * @throws Will throw an error if the configuration or services are invalid.
    */
   constructor(handlerName, config, services) {
@@ -81,13 +86,14 @@ class AbstractHandler {
     // Services
     this.log = services.log;
     this.sqsClient = services.sqsClient;
-    this.s3Client = AWSXRay.captureAWSv3Client(services.s3Client);
+    this.s3Client = services.xray.captureAWSv3Client(services.s3Client);
     this.slackClient = services.slackClient;
 
     // Local
     this.device = config.device;
     this.browser = null;
     this.importPath = null;
+    this.userAgent = config.userAgent || DEFAULT_USER_AGENT;
   }
 
   /**
@@ -195,6 +201,7 @@ class AbstractHandler {
         defaultViewport: chromium.defaultViewport,
         executablePath: '/opt/homebrew/bin/chromium',
         headless: true,
+        ignoreHTTPSErrors: true,
       } : {
         args: chromium.args,
         defaultViewport: chromium.defaultViewport,
@@ -247,6 +254,21 @@ class AbstractHandler {
     this.#cleanupTmpFiles(browserProfileDir, '/tmp');
   }
 
+  async #closePage(page) {
+    try {
+      if (page && !page.isClosed()) {
+        await page.close();
+      }
+    } catch (e) {
+      this.#log('error', `Error closing page: ${e.message}`, e);
+    }
+  }
+
+  async #closeAllPages() {
+    const pages = await this.browser.pages();
+    await Promise.all(pages.map((page) => this.#closePage(page)));
+  }
+
   /**
    * Gets the name of the handler.
    * @return {string} The handler name.
@@ -269,6 +291,7 @@ class AbstractHandler {
    * Scrapes the content from the given URL.
    * @private
    * @param {string} url - The URL to scrape.
+   * @param {Object} customHeaders - The custom headers to use.
    * @param {Object} options - The options for scraping.
    * @param {Number} retries - The number of retries.
    * @returns {Promise<Object>} The scrape result.
@@ -283,6 +306,7 @@ class AbstractHandler {
       this.#log('info', `Scraping URL: ${url} with retries: ${retries}`);
       browser = await this.#getBrowser();
       page = await browser.newPage();
+      page.setUserAgent(this.userAgent);
       const startScrape = Date.now();
       const enableJavascript = isBoolean(options.enableJavascript)
         ? options.enableJavascript
@@ -354,7 +378,7 @@ class AbstractHandler {
         // Take screenshot
         if (takeScreenshot && !this.config.skipStorage) {
           let screenshotBinary;
-          const segment = AWSXRay.getSegment() || new AWSXRay.Segment('Screenshots');
+          const segment = this.services.xray.getSegment() || new this.services.xray.Segment('Screenshots');
           const screenshotSubsegment = segment.addNewSubsegment('Taking Screenshot');
           try {
             const startScreenshot = Date.now();
@@ -421,11 +445,9 @@ class AbstractHandler {
       const endScrape = Date.now();
       const scrapeTime = endScrape - startScrape;
 
-      this.#log('info', `Time taken for scraping: ${scrapeTime}ms`);
+      await this.#closeAllPages();
 
-      if (page && !page.isClosed()) {
-        await page.close();
-      }
+      this.#log('info', `Time taken for scraping: ${scrapeTime}ms`);
 
       return {
         finalUrl: page.url(),
@@ -437,9 +459,19 @@ class AbstractHandler {
         device,
       };
     } catch (e) {
+      await this.#closeAllPages();
+
       if (e instanceof RedirectError) {
         this.#log('info', `Caught redirect: ${e.message}`);
         throw e; // Re-throw the specific redirect error, we do not want to retry
+      }
+      if (e instanceof PuppeteerError) {
+        this.#log('error', `Puppeteer error: ${e.message}`, e);
+        throw e;
+      }
+      if (e.message?.startsWith('net::')) {
+        this.#log('error', `Network error: ${e.message}`, e);
+        throw e;
       }
       if (retries >= maxRetries) {
         throw e;
@@ -656,6 +688,7 @@ class AbstractHandler {
    * @param {string} urlsData[].url - The URL to process, required.
    * @param {string} [urlsData[].urlId] - Optional URL ID.
    * @param {string} [urlsData[].status] - Optional URL status.
+   * @param {object} [customHeaders] - The custom headers to use for the processing.
    * @param {object} [options] - The processing options.
    * @param {boolean} [options.enableJavascript] - Whether to enable JavaScript in the browser,
    * default is true.

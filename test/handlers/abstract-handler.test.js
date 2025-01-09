@@ -25,7 +25,7 @@ import { GetObjectCommand, PutObjectCommand } from '@aws-sdk/client-s3';
 import fs from 'fs';
 import { describe } from 'mocha';
 import sharp from 'sharp';
-import { KnownDevices } from 'puppeteer-core';
+import { KnownDevices, TimeoutError } from 'puppeteer-core';
 import AbstractHandler from '../../src/handlers/abstract-handler.js';
 
 use(chaiAsPromised);
@@ -42,11 +42,9 @@ class TestHandler extends AbstractHandler {
 }
 
 const createBrowserStub = (pageStubs) => sinon.stub(puppeteer, 'launch').resolves({
-  newPage: sinon.stub().callsFake(() => {
-    const pageStub = pageStubs.shift();
-    return pageStub;
-  }),
+  newPage: sinon.stub().callsFake(() => pageStubs.shift()),
   close: sinon.stub(),
+  pages: sinon.stub().resolves([...pageStubs]),
   userAgent: async () => 'test-user-agent',
   process: () => ({
     spawnargs: ['--user-data-dir=/tmp/puppeteer_dev_profile'],
@@ -114,6 +112,17 @@ describe('AbstractHandler', () => {
       slackClient: {
         postMessage: sinon.stub().returns({ promise: () => Promise.resolve() }),
       },
+    };
+
+    mockServices.xray = {
+      captureAWSv3Client: sinon.stub().returns(mockServices.s3Client),
+      getSegment: sinon.stub(),
+      Segment: sinon.stub().returns({
+        addNewSubsegment: sinon.stub().returns({
+          addError: sinon.stub(),
+          close: sinon.stub(),
+        }),
+      }),
     };
 
     mockPage = createPageStub();
@@ -210,6 +219,7 @@ describe('AbstractHandler', () => {
         },
         executablePath: '/opt/homebrew/bin/chromium',
         headless: true,
+        ignoreHTTPSErrors: true,
       };
       const browserLaunchStub = createBrowserStub([mockPage]);
 
@@ -332,13 +342,29 @@ describe('AbstractHandler', () => {
       expect(results[0].scrapeResult).to.deep.equal({ data: 'scraped data' });
     });
 
-    it('resets browser if there is a resource error', async () => {
+    it('does not reset browser if there is a resource error', async () => {
       const pageStub = createPageStub({ data: 'scraped data' });
       pageStub.setViewport.rejects(new Error('net::ERR_INSUFFICIENT_RESOURCES'));
       const browser = createBrowserStub([pageStub]);
       await handler.process([{ url: 'https://example.com' }]);
-      expect(browser.calledTwice).to.be.true;
+      expect(browser.calledOnce).to.be.true;
     }).timeout(3000);
+
+    it('does not reset browser if there is a puppeteer error', async () => {
+      const pageStub = createPageStub({ data: 'scraped data' });
+      pageStub.setViewport.rejects(new TimeoutError('net::ERR_INSUFFICIENT_RESOURCES'));
+      const browser = createBrowserStub([pageStub]);
+      await handler.process([{ url: 'https://example.com' }]);
+      expect(browser.calledOnce).to.be.true;
+    }).timeout(3000);
+
+    it('logs error if page close fails', async () => {
+      const pageStub = createPageStub({ data: 'scraped data' });
+      pageStub.close.rejects(new Error('Failed to close page'));
+      createBrowserStub([pageStub]);
+      await handler.process([{ url: 'https://example.com' }]);
+      expect(mockServices.log.error.calledWithMatch('[TestHandler] Error closing page: Failed to close page')).to.be.true;
+    });
 
     it('should kill the browser when browser.close() is taking more than 3 seconds and cleanup files', async () => {
       const browserMock = {
@@ -350,6 +376,7 @@ describe('AbstractHandler', () => {
         close: sinon.stub().callsFake(() => new Promise((resolve) => {
           setTimeout(resolve, 4000);
         })),
+        pages: sinon.stub().resolves([]),
         process: sinon.stub().returns({
           spawnargs: ['--user-data-dir=/tmp/test-profile111'],
           kill: sinon.stub(),
@@ -383,6 +410,7 @@ describe('AbstractHandler', () => {
         evaluate: sinon.stub().resolves({}),
         url: sinon.stub().returns('https://example.com'),
         close: sinon.stub().rejects(new Error('Some other error')),
+        pages: sinon.stub().resolves([]),
         process: sinon.stub().returns({
           spawnargs: ['--user-data-dir=/tmp/test-profile'],
           kill: sinon.stub(),
@@ -468,7 +496,9 @@ describe('AbstractHandler', () => {
       const testHandler = new TestHandler('default', mockConfig, mockServices);
       await testHandler.process([{ url: 'https://example.com' }], undefined, options);
 
-      expect(mockPage.setUserAgent.calledOnceWith(KnownDevices['iPhone 6'].userAgent)).to.be.true;
+      // once for default user agent, once for screenshot
+      expect(mockPage.setUserAgent).to.have.been.calledTwice;
+      expect(mockPage.setUserAgent.secondCall.calledWith(KnownDevices['iPhone 6'].userAgent)).to.be.true;
       expect(mockPage.setViewport.firstCall
         .calledWithExactly({ ...KnownDevices['iPhone 6'].viewport, deviceScaleFactor: 1 }))
         .to.be.true;
@@ -483,7 +513,9 @@ describe('AbstractHandler', () => {
       const testHandler = new TestHandler('default', { ...mockConfig, device: 'iPad landscape' }, mockServices);
       await testHandler.process([{ url: 'https://example.com' }], undefined, options);
 
-      expect(mockPage.setUserAgent.calledOnceWith(KnownDevices['iPad landscape'].userAgent)).to.be.true;
+      // once for default user agent, once for device
+      expect(mockPage.setUserAgent).to.have.been.calledTwice;
+      expect(mockPage.setUserAgent.secondCall.calledWith(KnownDevices['iPad landscape'].userAgent)).to.be.true;
       expect(mockPage.setViewport
         .calledOnceWithExactly({ ...KnownDevices['iPad landscape'].viewport, deviceScaleFactor: 1 }))
         .to.be.true;

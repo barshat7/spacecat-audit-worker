@@ -28,6 +28,8 @@ export default async function runHTTP(request, context = false) {
     customHeaders,
   } = context.data;
 
+  const userAgent = context.env?.USER_AGENT;
+
   try {
     if (!Array.isArray(urls) || urls.length === 0) {
       return badRequest('Missing URLs');
@@ -38,7 +40,11 @@ export default async function runHTTP(request, context = false) {
     }
 
     const config = {
-      jobId, slackContext, skipMessage: true, skipStorage: true,
+      jobId,
+      skipMessage: true,
+      skipStorage: true,
+      slackContext,
+      userAgent,
     };
     const handler = selectHandler(context, handlers, services, config, PROCESSING_TYPE);
 

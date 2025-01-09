@@ -73,7 +73,7 @@ const createMockHandler = (errors) => class MockHandler {
   }
 };
 
-describe('index.js', () => {
+describe('run-sqs', () => {
   let mockMessage;
   let mockHandler;
 

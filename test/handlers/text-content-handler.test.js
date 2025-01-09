@@ -23,11 +23,9 @@ import TextContentHandler from '../../src/handlers/text-content-handler.js';
 use(chaiAsPromised);
 
 const createBrowserStub = (pageStubs) => sinon.stub(puppeteer, 'launch').resolves({
-  newPage: sinon.stub().callsFake(() => {
-    const pageStub = pageStubs.shift();
-    return pageStub;
-  }),
+  newPage: sinon.stub().callsFake(() => pageStubs.shift()),
   close: sinon.stub(),
+  pages: sinon.stub().resolves(pageStubs),
   userAgent: async () => 'test-user-agent',
   process: () => ({
     spawnargs: ['--user-data-dir=/tmp/puppeteer_dev_profile'],
@@ -94,6 +92,17 @@ describe('TextContentHandler', () => {
       slackClient: {
         postMessage: sinon.stub().returns({ promise: () => Promise.resolve() }),
       },
+    };
+
+    mockServices.xray = {
+      captureAWSv3Client: sinon.stub().returns(mockServices.s3Client),
+      getSegment: sinon.stub(),
+      Segment: sinon.stub().returns({
+        addNewSubsegment: sinon.stub().returns({
+          addError: sinon.stub(),
+          close: sinon.stub(),
+        }),
+      }),
     };
 
     handler = new TextContentHandler(mockConfig, mockServices);

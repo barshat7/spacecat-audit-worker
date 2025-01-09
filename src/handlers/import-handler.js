@@ -120,7 +120,6 @@ class ImportHandler extends AbstractHandler {
     }
   }
 
-  /* eslint-disable-next-line class-methods-use-this */
   async transformScrapeResult(result) {
     const { md, path: impPath } = result.scrapeResult;
 

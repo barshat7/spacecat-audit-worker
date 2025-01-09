@@ -150,6 +150,18 @@ describe('utils.js', () => {
         },
         slackClient: {},
       };
+
+      services.xray = {
+        captureAWSv3Client: sinon.stub().returns(services.s3Client),
+        getSegment: sinon.stub(),
+        Segment: sinon.stub().returns({
+          addNewSubsegment: sinon.stub().returns({
+            addError: sinon.stub(),
+            close: sinon.stub(),
+          }),
+        }),
+      };
+
       const config = {
         jobId: 'test-job',
         s3BucketName: 'test-bucket',

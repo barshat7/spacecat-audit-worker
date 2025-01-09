@@ -265,9 +265,9 @@ Example:
 {
   "wsk": {
     "awsLayers": [
-      "arn:aws:lambda:us-east-1:123456789012:layer:spacecat-puppeteer:1",
-      "arn:aws:lambda:us-east-1:123456789012:layer:spacecat-chrome-aws-lambda:1",
-      "arn:aws:lambda:us-east-1:123456789012:layer:spacecat-sharp-layer:1"
+      "arn:aws:lambda:us-east-1:<aws-account-id>:layer:spacecat-chrome-aws-lambda:2",
+      "arn:aws:lambda:us-east-1:<aws-account-id>:layer:spacecat-puppeteer:4",
+      "arn:aws:lambda:us-east-1:<aws-account-id>:layer:spacecat-sharp-layer:2"
     ]
   }
 }
@@ -284,6 +284,7 @@ that the scraper can connect to necessary services and handle tasks correctly.
 - **SLACK_TOKEN_WORKSPACE_INTERNAL**: The slack token.
 - **HANDLER_CONFIGS**: A JSON string containing configuration for each handler.
 - **SLACK_WEBHOOK_URL**: The webhook URL to send notifications to Slack.
+- **USER_AGENT**: The user agent string to use when scraping web pages. (will be overridden for screenshot taking by the device profiles)
 
 ### Handler Configuration
 

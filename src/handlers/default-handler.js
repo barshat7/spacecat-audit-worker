@@ -43,6 +43,7 @@ class DefaultHandler extends AbstractHandler {
    * @param {string} urlsData[].url - The URL to process, required.
    * @param {string} [urlsData[].urlId] - Optional URL ID.
    * @param {string} [urlsData[].status] - Optional URL status.
+   * @param {object} [customHeaders] - The custom headers to use for the processing.
    * @param {object} [options] - The processing options.
    * @param {boolean} [options.enableJavascript] - Whether to enable JavaScript in the browser,
    * default is true.

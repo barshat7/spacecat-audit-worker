@@ -74,7 +74,7 @@ const createMockHandler = (errors) => class MockHandler {
   }
 };
 
-describe('index.js', () => {
+describe('run-http', () => {
   let mockData;
   let mockHandler;
 

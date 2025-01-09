@@ -29,6 +29,7 @@ import {
   sqsWrapper,
   logWrapper,
 } from '@adobe/spacecat-shared-utils';
+import AWSXRay from 'aws-xray-sdk';
 
 import DefaultHandler from './handlers/default-handler.js';
 import ImportHandler from './handlers/import-handler.js';
@@ -61,6 +62,7 @@ const serviceProvider = (fn) => async (req, context) => {
         SLACK_TARGETS.WORKSPACE_INTERNAL,
       ),
       sqsClient: context.sqs,
+      xray: AWSXRay,
     };
   }
   return fn(req, context);
