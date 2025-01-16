@@ -1,3 +1,10 @@
+## [1.18.1](https://github.com/adobe/spacecat-content-scraper/compare/v1.18.0...v1.18.1) (2025-01-16)
+
+
+### Bug Fixes
+
+* **deps:** update dependency @adobe/spacecat-shared-utils to v1.26.4 ([#252](https://github.com/adobe/spacecat-content-scraper/issues/252)) ([b98b92a](https://github.com/adobe/spacecat-content-scraper/commit/b98b92a46deb5e0753e46107ec01e0131f19445f))
+
 # [1.18.0](https://github.com/adobe/spacecat-content-scraper/compare/v1.17.8...v1.18.0) (2025-01-16)
 
 
