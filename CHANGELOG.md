@@ -1,3 +1,10 @@
+# [1.18.0](https://github.com/adobe/spacecat-content-scraper/compare/v1.17.8...v1.18.0) (2025-01-16)
+
+
+### Features
+
+* add support for section/block/scroll screenshots ([#227](https://github.com/adobe/spacecat-content-scraper/issues/227)) ([83f2285](https://github.com/adobe/spacecat-content-scraper/commit/83f22857921ef2b83cf85f5f433b1f50cf34ef91))
+
 ## [1.17.8](https://github.com/adobe/spacecat-content-scraper/compare/v1.17.7...v1.17.8) (2025-01-15)
 
 
