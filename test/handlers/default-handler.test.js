@@ -16,6 +16,7 @@ import {
 import sinon from 'sinon';
 import AbstractHandler from '../../src/handlers/abstract-handler.js';
 import DefaultHandler from '../../src/handlers/default-handler.js';
+import { SCREENSHOT_TYPES } from '../../src/support/screenshot.js';
 
 describe('DefaultHandler', () => {
   let handler;
@@ -102,8 +103,8 @@ describe('DefaultHandler', () => {
       expect(AbstractHandler.prototype.process.calledOnce).to.be.true;
 
       const passedOptions = AbstractHandler.prototype.process.args[0][2];
-      expect(passedOptions.takeScreenshot).to.be.true;
-      expect(passedOptions.generateThumbnail).to.be.true;
+      expect(passedOptions.screenshotTypes.includes(SCREENSHOT_TYPES.FULL_PAGE)).to.be.true;
+      expect(passedOptions.screenshotTypes.includes(SCREENSHOT_TYPES.THUMBNAIL)).to.be.true;
     });
   });
 

@@ -38,8 +38,8 @@ Lambda function invocations simultaneously.
   "options": {
     "pageLoadTimeout": 100,
     "enableJavaScript": true,
-    "takeScreenshot": true,
-    "generateThumbnail": true,
+    "storagePrefix": "experiment-new/var-1",
+    "screenshotTypes": ["fullpage", "thumbnail"],
   },
   "urls": [
     {
@@ -74,13 +74,20 @@ serial.
 - **skipStorage**: A boolean indicating whether to skip storing the scraped content in S3.
 - **options**: An object containing various options for processing. These options can be used to customize the behavior
   of the scraping process.
-    - **pageLoadTimeout**: (Optional) A number specifying the timeout in milliseconds to allow for the DOM to be
-      decorated by client side JavaScript. Default is `100` milliseconds.
+    - **pageLoadTimeout**: (Optional) A number specifying the timeout in milliseconds to allow for the DOM to be decorated by client side JavaScript. Default is `100` milliseconds.
     - **enableJavaScript**: (Optional) A boolean indicating whether JavaScript should be enabled in the browser context.
       Default is `true`.
-    - **takeScreenshot**: (Optional) A boolean indicating whether to take a screenshot of the page. Default is `false`.
-    - **generateThumbnail**: (Optional) A boolean indicating whether to additionally generate thumbnails of the screenshots of the page. Default is
-      `false`.
+    - **screenshotTypes**: (Optional) An array of strings indicating the types of screenshots to take. Default is `["fullpage", "thumbnail"]`.
+      The following screenshot types are supported:
+      - `"viewport"`: A screenshot of the viewport (above the fold) of the page.
+      - `"fullpage"`: A full-page screenshot of the page.
+      - `"thumbnail"`: A thumbnail screenshot of the page.
+      - `"section"`: screenshot of all the sections of the page.
+      - `"block"`: screenshot of all the blocks of the page.
+      - `"scroll"`: 2 screenshots of the page as it scrolls.
+    - **storagePrefix**: (Optional) A string to prefix the storage path for screenshots. For example, when capturing screenshots during an experiment, this could be used to organize screenshots by experiment and variant.
+    This could also be used to organize screenshots by creation date.
+    - **sectionLoadWaitTime**: (Optional) A number to override the default wait time for sections to load. Default is `3000` milliseconds.
     - **waitForSelector**: (Optional) A string specifying the CSS selector to wait for before proceeding with the scraping process. If not provided or invalid, the default selector 'body' will be used. The timeout for waiting is set to 10,000 milliseconds.
 - **urls**: An array of URL objects to be processed. Only the first URL in the array will be processed.
     - **url**: A string representing the URL to be scraped. This is a required field.

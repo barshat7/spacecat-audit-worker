@@ -11,7 +11,7 @@
  */
 
 import {
-  hasText, isBoolean, isNumber, isObject, isValidUrl,
+  hasText, isBoolean, isNumber, isObject, isValidUrl, isNonEmptyArray,
 } from '@adobe/spacecat-shared-utils';
 import { PutObjectCommand } from '@aws-sdk/client-s3';
 
@@ -30,8 +30,6 @@ import { KnownDevices, PuppeteerError } from 'puppeteer-core';
 import StealthPlugin from 'puppeteer-extra-plugin-stealth';
 // eslint-disable-next-line import/no-extraneous-dependencies
 import AdblockerPlugin from 'puppeteer-extra-plugin-adblocker';
-// eslint-disable-next-line import/no-extraneous-dependencies
-import sharp from 'sharp';
 
 import { promisify } from 'util';
 import { exec } from 'child_process';
@@ -39,6 +37,7 @@ import { exec } from 'child_process';
 import fs from 'fs';
 import path from 'path';
 
+import { takeScreenshots } from '../support/screenshot.js';
 import { sendSlackMessage, sendSQSMessage } from '../support/utils.js';
 import RedirectError from '../support/redirect-error.js';
 
@@ -315,9 +314,9 @@ class AbstractHandler {
         ? options.pageLoadTimeout
         : 30000;
 
-      const { takeScreenshot, generateThumbnail } = options;
+      const { screenshotTypes } = options;
       const devices = [];
-      if (takeScreenshot && !this.config.skipStorage) {
+      if (isNonEmptyArray(screenshotTypes) && !this.config.skipStorage) {
         // Add mobile and desktop viewports for screenshots
         devices.push('iPhone 6', 'desktop');
       }
@@ -348,7 +347,6 @@ class AbstractHandler {
       let device;
       for (device of devices) {
         const knownDevice = KnownDevices[device];
-        const deviceName = device.replace(/\s/g, '-').toLowerCase();
 
         // Set user agent
         const userAgent = device !== 'desktop' ? knownDevice.userAgent : false;
@@ -376,56 +374,13 @@ class AbstractHandler {
         await page.waitForSelector(selectorToWait, { timeout: 10000 });
 
         // Take screenshot
-        if (takeScreenshot && !this.config.skipStorage) {
-          let screenshotBinary;
-          const segment = this.services.xray.getSegment() || new this.services.xray.Segment('Screenshots');
-          const screenshotSubsegment = segment.addNewSubsegment('Taking Screenshot');
-          try {
-            const startScreenshot = Date.now();
-            screenshotBinary = await page.screenshot({
-              fullPage: true,
-              type: 'png',
-              encoding: 'binary',
-            });
-            const endScreenshot = Date.now();
-            const screenshotTime = endScreenshot - startScreenshot;
-            screenshots.push({
-              fileName: `screenshot-${deviceName}.png`, binary: screenshotBinary, contentType: 'image/png', screenshotTime,
-            });
-            screenshotSubsegment.close();
-          } catch (e) {
-            this.#log('error', `Error taking screenshot: ${e.message}`, e);
-            screenshotSubsegment.addError(e);
-            screenshotSubsegment.close();
-          }
-
-          // Crop and resize screenshot into thumbnail
-          if (generateThumbnail && screenshotBinary) {
-            const thumbnailSubsegment = segment.addNewSubsegment('Generating Thumbnail');
-            try {
-              const startThumbnail = Date.now();
-              const thumbnailBinary = await sharp(screenshotBinary)
-                .toFormat('png')
-                .extract({
-                  left: 0,
-                  top: 0,
-                  width: page.viewport().width,
-                  height: page.viewport().height,
-                })
-                .resize(200)
-                .toBuffer();
-              const endThumbnail = Date.now();
-              const thumbnailTime = endThumbnail - startThumbnail;
-              screenshots.push({
-                fileName: `screenshot-${deviceName}-thumbnail.png`, binary: thumbnailBinary, contentType: 'image/png', screenshotTime: thumbnailTime,
-              });
-              thumbnailSubsegment.close();
-            } catch (e) {
-              this.#log('error', `Error generating thumbnail: ${e.message}`, e);
-              thumbnailSubsegment.addError(e);
-              thumbnailSubsegment.close();
-            }
-          }
+        if (isNonEmptyArray(screenshotTypes) && !this.config.skipStorage) {
+          screenshots.push(...await takeScreenshots(
+            this.services,
+            page,
+            device,
+            options,
+          ));
         }
       }
 
@@ -502,11 +457,12 @@ class AbstractHandler {
   /**
    * Gets the storage path for the scraped content.
    * @param {string} fileName - The name of the file.
+   * @param {string} [prefix = ''] - The prefix for the storage path.
    * @returns {Promise<string>} The storage path.
    */
   // eslint-disable-next-line no-unused-vars
-  async getStoragePath(fileName) {
-    return path.join(`scrapes/${this.config.jobId}`, this.importPath ? this.importPath : '', fileName);
+  async getStoragePath(fileName, prefix = '') {
+    return path.join(`scrapes/${this.config.jobId}`, this.importPath || '', prefix || '', fileName);
   }
 
   /**
@@ -555,10 +511,15 @@ class AbstractHandler {
     }
 
     const commands = [];
+    const { storagePrefix = '' } = options;
 
     for (const screenshot of screenshots) {
-      const { fileName, binary, contentType } = screenshot;
-      const storagePath = await this.getStoragePath(fileName);
+      const {
+        folder = '', fileName, binary, contentType,
+      } = screenshot;
+      this.#log('info', `Storing screenshot ${fileName} in folder ${folder}`);
+      const prefix = hasText(storagePrefix) ? `${storagePrefix}/${folder}` : folder;
+      const storagePath = await this.getStoragePath(fileName, prefix);
       commands.push(new PutObjectCommand({
         Bucket: this.config.s3BucketName,
         Key: storagePath,
@@ -569,7 +530,7 @@ class AbstractHandler {
 
     const storageConfig = this.getStorageConfig();
 
-    const filePath = await this.getStoragePath('scrape.json');
+    const filePath = await this.getStoragePath('scrape.json', storagePrefix);
     commands.push(new PutObjectCommand({
       Bucket: this.config.s3BucketName,
       Key: filePath,
@@ -694,10 +655,7 @@ class AbstractHandler {
    * default is true.
    * @param {int} [options.pageLoadTimeout] - The page load timeout in milliseconds,
    * default is 30000.
-   * @param {boolean} [options.takeScreenshot] - Take a screenshot of the page,
-   * default is false.
-   * @param {boolean} [options.generateThumbnail] - Generate a thumbnail from the screenshot,
-   * default is false.
+   * @param {boolean} [options.screenshotTypes] - Configuration for the screenshot types to take
    * @returns {Promise<Array>} The results of the processing.
    * @throws Will throw an error if processing fails.
    */

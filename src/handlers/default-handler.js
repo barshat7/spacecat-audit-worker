@@ -11,7 +11,7 @@
  */
 
 import AbstractHandler from './abstract-handler.js';
-
+import { SCREENSHOT_TYPES } from '../support/screenshot.js';
 /**
  * Default handler, implements abstract handler with no adjustments.
  * @extends AbstractHandler
@@ -58,8 +58,10 @@ class DefaultHandler extends AbstractHandler {
    */
   async process(urlsData, customHeaders, options = {}) {
     const defaultOptions = {
-      takeScreenshot: true,
-      generateThumbnail: true,
+      screenshotTypes: [
+        SCREENSHOT_TYPES.FULL_PAGE,
+        SCREENSHOT_TYPES.THUMBNAIL,
+      ],
       ...options,
     };
 

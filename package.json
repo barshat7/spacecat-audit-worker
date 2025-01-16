@@ -54,6 +54,7 @@
     "static": [
       "static/evaluate/default.js",
       "static/evaluate/import.js",
+      "static/evaluate/page-elements.js",
       "static/inject/import.js",
       "static/resources/import/styles.xml"
     ]
@@ -86,6 +87,7 @@
     "dotenv": "16.4.7",
     "eslint": "8.57.1",
     "husky": "9.1.7",
+    "esmock": "2.6.9",
     "mocha": "11.0.1",
     "mocha-multi-reporters": "1.5.1",
     "mocha-suppress-logs": "0.5.1",

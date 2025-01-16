@@ -27,6 +27,7 @@ import { describe } from 'mocha';
 import sharp from 'sharp';
 import { KnownDevices, TimeoutError } from 'puppeteer-core';
 import AbstractHandler from '../../src/handlers/abstract-handler.js';
+import { SCREENSHOT_TYPES } from '../../src/support/screenshot.js';
 
 use(chaiAsPromised);
 use(sinonChai);
@@ -490,9 +491,18 @@ describe('AbstractHandler', () => {
       expect(results[0].error.message).to.deep.equal('Test error');
     });
 
+    it('stores screenshots with given storagePrefix', async () => {
+      createBrowserStub([mockPage]);
+      const options = { screenshotTypes: [SCREENSHOT_TYPES.FULL_PAGE], storagePrefix: 'test-prefix' };
+      const testHandler = new TestHandler('default', mockConfig, mockServices);
+      await testHandler.process([{ url: 'https://example.com' }], undefined, options);
+      // Expect s3 call is made with file key that includes the storagePrefix
+      expect(mockServices.s3Client.send.firstCall.args[0].input.Key).to.contain('test-prefix');
+    });
+
     it('adds additional devices with screenshots enabled', async () => {
       createBrowserStub([mockPage]);
-      const options = { takeScreenshot: true, generateThumbnail: false };
+      const options = { screenshotTypes: [SCREENSHOT_TYPES.FULL_PAGE] };
       const testHandler = new TestHandler('default', mockConfig, mockServices);
       await testHandler.process([{ url: 'https://example.com' }], undefined, options);
 
@@ -509,7 +519,7 @@ describe('AbstractHandler', () => {
 
     it('respects the device configuration', async () => {
       createBrowserStub([mockPage]);
-      const options = { takeScreenshot: false, generateThumbnail: false };
+      const options = { screenshotTypes: [] };
       const testHandler = new TestHandler('default', { ...mockConfig, device: 'iPad landscape' }, mockServices);
       await testHandler.process([{ url: 'https://example.com' }], undefined, options);
 
@@ -523,7 +533,7 @@ describe('AbstractHandler', () => {
 
     it('takes a screenshot without thumbnail', async () => {
       createBrowserStub([mockPage]);
-      const options = { takeScreenshot: true, generateThumbnail: false };
+      const options = { screenshotTypes: [SCREENSHOT_TYPES.FULL_PAGE] };
       const testHandler = new TestHandler('default', mockConfig, mockServices);
       const results = await testHandler.process([{ url: 'https://example.com' }], undefined, options);
 
@@ -532,8 +542,8 @@ describe('AbstractHandler', () => {
 
       // Validate that screenshots only has two entries, one for mobile, one for desktop
       expect(results[0].screenshots.length).to.equal(2);
-      expect(results[0].screenshots[0].fileName).to.equal('screenshot-iphone-6.png');
-      expect(results[0].screenshots[1].fileName).to.equal('screenshot-desktop.png');
+      expect(results[0].screenshots[0].fileName).to.equal('screenshot-iphone-6-fullpage.png');
+      expect(results[0].screenshots[1].fileName).to.equal('screenshot-desktop-fullpage.png');
     });
 
     it('takes a screenshot with thumbnail', async () => {
@@ -546,7 +556,7 @@ describe('AbstractHandler', () => {
       sharpStub.resize.returnsThis();
       sharpStub.toBuffer.resolves('testBuffer');
 
-      const options = { takeScreenshot: true, generateThumbnail: true };
+      const options = { screenshotTypes: [SCREENSHOT_TYPES.FULL_PAGE, SCREENSHOT_TYPES.THUMBNAIL] };
       const testHandler = new TestHandler('default', mockConfig, mockServices);
       const results = await testHandler.process([{ url: 'https://example.com' }], undefined, options);
 
@@ -561,9 +571,9 @@ describe('AbstractHandler', () => {
 
       // Validate that screenshots only has two entries, one for mobile, one for desktop
       expect(results[0].screenshots.length).to.equal(4);
-      expect(results[0].screenshots[0].fileName).to.equal('screenshot-iphone-6.png');
+      expect(results[0].screenshots[0].fileName).to.equal('screenshot-iphone-6-fullpage.png');
       expect(results[0].screenshots[1].fileName).to.equal('screenshot-iphone-6-thumbnail.png');
-      expect(results[0].screenshots[2].fileName).to.equal('screenshot-desktop.png');
+      expect(results[0].screenshots[2].fileName).to.equal('screenshot-desktop-fullpage.png');
       expect(results[0].screenshots[3].fileName).to.equal('screenshot-desktop-thumbnail.png');
     });
 
@@ -571,7 +581,7 @@ describe('AbstractHandler', () => {
       const pageStub = createPageStub({ data: 'scraped data' });
       pageStub.screenshot.rejects(new Error('Test error'));
       createBrowserStub([pageStub]);
-      const options = { takeScreenshot: true, generateThumbnail: false };
+      const options = { screenshotTypes: [SCREENSHOT_TYPES.FULL_PAGE] };
       const testHandler = new TestHandler('default', mockConfig, mockServices);
       const results = await testHandler.process([{ url: 'https://example.com' }], undefined, options);
 
@@ -585,7 +595,7 @@ describe('AbstractHandler', () => {
       const sharpStub = sinon.stub(sharp.prototype);
       sharpStub.extract.rejects(new Error('Test error'));
 
-      const options = { takeScreenshot: true, generateThumbnail: true };
+      const options = { screenshotTypes: [SCREENSHOT_TYPES.FULL_PAGE, SCREENSHOT_TYPES.THUMBNAIL] };
       const testHandler = new TestHandler('default', mockConfig, mockServices);
       const results = await testHandler.process([{ url: 'https://example.com' }], undefined, options);
 
@@ -594,8 +604,8 @@ describe('AbstractHandler', () => {
 
       // Validate that screenshots only has two entries, one for mobile, one for desktop
       expect(results[0].screenshots.length).to.equal(2);
-      expect(results[0].screenshots[0].fileName).to.equal('screenshot-iphone-6.png');
-      expect(results[0].screenshots[1].fileName).to.equal('screenshot-desktop.png');
+      expect(results[0].screenshots[0].fileName).to.equal('screenshot-iphone-6-fullpage.png');
+      expect(results[0].screenshots[1].fileName).to.equal('screenshot-desktop-fullpage.png');
     });
   });
 
@@ -628,7 +638,7 @@ describe('AbstractHandler', () => {
       sharpStub.resize.returnsThis();
       sharpStub.toBuffer.resolves('testBuffer');
 
-      const options = { takeScreenshot: true, generateThumbnail: true };
+      const options = { screenshotTypes: [SCREENSHOT_TYPES.FULL_PAGE, SCREENSHOT_TYPES.THUMBNAIL] };
       const testHandler = new TestHandler('default', mockConfig, mockServices);
       const results = await testHandler.process([{ url: 'https://example.com' }], undefined, options);
 
