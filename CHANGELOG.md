@@ -1,3 +1,10 @@
+## [1.18.3](https://github.com/adobe/spacecat-content-scraper/compare/v1.18.2...v1.18.3) (2025-01-18)
+
+
+### Bug Fixes
+
+* **deps:** update external fixes ([#254](https://github.com/adobe/spacecat-content-scraper/issues/254)) ([1799f37](https://github.com/adobe/spacecat-content-scraper/commit/1799f37234abad019f44a78cd04f18c58b24a9d4))
+
 ## [1.18.2](https://github.com/adobe/spacecat-content-scraper/compare/v1.18.1...v1.18.2) (2025-01-16)
 
 
