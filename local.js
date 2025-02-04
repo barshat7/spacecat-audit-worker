@@ -47,6 +47,15 @@ import DefaultHandler from './src/handlers/default-handler.js';
         return { promise: () => Promise.resolve() };
       },
     },
+    xray: {
+      captureAWSv3Client: (client) => client,
+      getSegment: () => ({
+        addNewSubsegment: () => ({
+          close: () => {},
+          addError: (e) => console.error(e),
+        }),
+      }),
+    },
     s3Client: {
       middlewareStack: {
         remove: () => {},
@@ -79,7 +88,7 @@ import DefaultHandler from './src/handlers/default-handler.js';
   const handler = new DefaultHandler(config, services);
 
   const urlsData = [
-    { url: 'https://www.aemshop.net' }, // https://www.w3schools.com/cssref/css_websafe_fonts.php
+    { url: 'https://www.aemshop.net' },
   ];
 
   await handler.process(urlsData, {}, config.options);

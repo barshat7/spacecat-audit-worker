@@ -34,6 +34,26 @@ const evalFn = () => {
     const h1Tags = document.querySelectorAll('h1');
     tags.h1 = Array.from(h1Tags).map(tag => tag.textContent);
 
+    // Collect LD+JSON structured data from script tags
+    const structuredData = [];
+    const scriptTags = document.querySelectorAll('script[type="application/ld+json"]');
+    scriptTags.forEach((tag) => {
+      try {
+        const data = JSON.parse(tag.textContent);
+      
+        // Flatten if @graph notation is used
+        if (data['@graph']) {
+          data['@graph'].forEach((graph) => {
+            structuredData.push(graph);
+          });
+        } else {
+          structuredData.push(data);
+        }
+      } catch (e) {
+        // Ignore invalid JSON
+      }
+    });
+
     const elementsToRemove = body.querySelectorAll('iframe, frame, script, link, meta, style');
     elementsToRemove.forEach((el) => el.remove());
 
@@ -58,13 +78,15 @@ const evalFn = () => {
 
     return {
       rawBody,
-      tags
+      tags,
+      structuredData
     };
   } catch (e) {
     return {
       error: e.message,
       rawBody: '',
       textContent: '',
+      structuredData: [],
       tags: {
         h1: []
       }
