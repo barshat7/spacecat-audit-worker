@@ -1,3 +1,10 @@
+# [1.19.0](https://github.com/adobe/spacecat-content-scraper/compare/v1.18.14...v1.19.0) (2025-02-04)
+
+
+### Features
+
+* store structured data in scrape report ([#268](https://github.com/adobe/spacecat-content-scraper/issues/268)) ([a22e358](https://github.com/adobe/spacecat-content-scraper/commit/a22e358b038841862865bad29857fd853cc66e19))
+
 ## [1.18.14](https://github.com/adobe/spacecat-content-scraper/compare/v1.18.13...v1.18.14) (2025-02-04)
 
 
