@@ -1,3 +1,10 @@
+# [1.20.0](https://github.com/adobe/spacecat-content-scraper/compare/v1.19.5...v1.20.0) (2025-02-10)
+
+
+### Features
+
+* add form handler for form urls ([#273](https://github.com/adobe/spacecat-content-scraper/issues/273)) ([655d06c](https://github.com/adobe/spacecat-content-scraper/commit/655d06c429dea7a9cde9841370017e3bd61a33ee))
+
 ## [1.19.5](https://github.com/adobe/spacecat-content-scraper/compare/v1.19.4...v1.19.5) (2025-02-08)
 
 
