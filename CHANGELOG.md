@@ -1,3 +1,10 @@
+## [1.20.4](https://github.com/adobe/spacecat-content-scraper/compare/v1.20.3...v1.20.4) (2025-02-13)
+
+
+### Bug Fixes
+
+* **deps:** adding forms handler in handler list ([#279](https://github.com/adobe/spacecat-content-scraper/issues/279)) ([bb1c578](https://github.com/adobe/spacecat-content-scraper/commit/bb1c578374a4f326fca9c6e64c6c2c41bf059a8a))
+
 ## [1.20.3](https://github.com/adobe/spacecat-content-scraper/compare/v1.20.2...v1.20.3) (2025-02-12)
 
 
