@@ -36,11 +36,13 @@ import ImportHandler from './handlers/import-handler.js';
 import TextContentHandler from './handlers/text-content-handler.js';
 import runSQS from './run-sqs.js';
 import runHTTP from './run-http.js';
+import FormHandler from './handlers/form-handler.js';
 
 const handlerList = [
   DefaultHandler,
   ImportHandler,
   TextContentHandler,
+  FormHandler,
 ];
 
 export const handlerProvider = (fn) => async (req, context) => {
