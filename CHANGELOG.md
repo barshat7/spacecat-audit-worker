@@ -1,3 +1,10 @@
+# [1.21.0](https://github.com/adobe/spacecat-content-scraper/compare/v1.20.7...v1.21.0) (2025-02-19)
+
+
+### Features
+
+* **sites-28812:** integrate md2jcr into content-scraper ([#284](https://github.com/adobe/spacecat-content-scraper/issues/284)) ([c7eb8d7](https://github.com/adobe/spacecat-content-scraper/commit/c7eb8d7261413e6c472374cc325f8c059270d05b))
+
 ## [1.20.7](https://github.com/adobe/spacecat-content-scraper/compare/v1.20.6...v1.20.7) (2025-02-18)
 
 
