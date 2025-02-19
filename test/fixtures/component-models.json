@@ -1,0 +1,12 @@
+[
+  {
+    "id": "sample",
+    "fields": [
+      {
+        "component": "text",
+        "name": "heading",
+        "valueType": "string"
+      }
+    ]
+  }
+]

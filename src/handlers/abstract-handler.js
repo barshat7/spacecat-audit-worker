@@ -55,6 +55,11 @@ const DEFAULT_USER_AGENT = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) Appl
  */
 class AbstractHandler {
   /**
+   * The logging service that provides the log methods.
+   */
+  #logService;
+
+  /**
    * Creates an instance of AbstractHandler.
    * @param {string} handlerName - The name of the handler.
    * @param {Object} config - The configuration object for the handler.
@@ -83,7 +88,7 @@ class AbstractHandler {
     this.#validateServices();
 
     // Services
-    this.log = services.log;
+    this.#logService = services.log;
     this.sqsClient = services.sqsClient;
     this.s3Client = services.xray.captureAWSv3Client(services.s3Client);
     this.slackClient = services.slackClient;
@@ -138,37 +143,34 @@ class AbstractHandler {
 
   /**
    * Centralized logging method that includes the handler name.
-   * @private
    * @param {string} level - The log level (e.g., 'info', 'error').
    * @param {string} message - The log message.
    * @param {Error} [error] - Optional error object to log.
    */
-  #log(level, message, error) {
+  log(level, message, error) {
     const logMessage = `[${this.getName()}] ${message}`;
     if (error) {
-      this.log[level](logMessage, error);
+      this.#logService[level](logMessage, error);
     } else {
-      this.log[level](logMessage);
+      this.#logService[level](logMessage);
     }
   }
 
   /**
    * Gets the path to the script for evaluating the page.
-   * @private
    * @returns {string} The path to the script.
    */
-  #getScriptPath() {
-    const defaultScriptPath = path.resolve('./static/evaluate/default.js');
-    const handlerScriptPath = path.resolve(`./static/evaluate/${this.getName()}.js`);
-    return fs.existsSync(handlerScriptPath) ? handlerScriptPath : defaultScriptPath;
+  // eslint-disable-next-line class-methods-use-this
+  getScriptPath() {
+    return path.resolve('./static/evaluate/default.js');
   }
 
   /**
-   * Gets the path to the script to inject in the page.
-   * @private
+   * Gets the path to the script to inject in the page. Different handlers may have different
+   * scripts for their use case.
    * @returns {string} The path to the script.
    */
-  #getPageInjectCode() {
+  getPageInjectCode() {
     const handlerScriptPath = path.resolve(`./static/inject/${this.getName()}.js`);
     if (fs.existsSync(handlerScriptPath)) {
       return fs.readFileSync(handlerScriptPath, 'utf8');
@@ -183,7 +185,7 @@ class AbstractHandler {
    * @return {string}
    */
   #getPageEvalCode() {
-    const scriptPath = this.#getScriptPath();
+    const scriptPath = this.getScriptPath();
     return fs.readFileSync(scriptPath, 'utf8');
   }
 
@@ -209,7 +211,7 @@ class AbstractHandler {
       };
       this.browser = await puppeteer.launch(options);
 
-      this.#log('info', 'Browser Launched');
+      this.log('info', 'Browser Launched');
     }
     return this.browser;
   }
@@ -217,14 +219,14 @@ class AbstractHandler {
   #cleanupTmpFiles(browserProfileDir, tmpDir) {
     if (browserProfileDir) {
       fs.rmSync(browserProfileDir.split('=')[1], { recursive: true, force: true });
-      this.#log('info', `Deleted browser profile directory: ${browserProfileDir}`);
+      this.log('info', `Deleted browser profile directory: ${browserProfileDir}`);
     }
     const files = fs.readdirSync(tmpDir);
     files.forEach((file) => {
       if (file.startsWith('core.chromium.')) {
         const filePath = path.join(tmpDir, file);
         fs.rmSync(filePath, { force: true });
-        this.#log('info', `Core dump file ${filePath} deleted successfully.`);
+        this.log('info', `Core dump file ${filePath} deleted successfully.`);
       }
     });
   }
@@ -240,9 +242,9 @@ class AbstractHandler {
         }),
       ]);
     } catch (error) {
-      this.#log('error', `Error closing browser: ${error.message}`, error);
+      this.log('error', `Error closing browser: ${error.message}`, error);
       if (error.message === 'Close timeout' && browser?.process()) {
-        this.#log('info', 'Killing browser process after close timeout');
+        this.log('info', 'Killing browser process after close timeout');
         browser?.process().kill();
       } else {
         throw error;
@@ -259,7 +261,7 @@ class AbstractHandler {
         await page.close();
       }
     } catch (e) {
-      this.#log('error', `Error closing page: ${e.message}`, e);
+      this.log('error', `Error closing page: ${e.message}`, e);
     }
   }
 
@@ -302,7 +304,7 @@ class AbstractHandler {
     let page = null;
 
     try {
-      this.#log('info', `Scraping URL: ${url} with retries: ${retries}`);
+      this.log('info', `Scraping URL: ${url} with retries: ${retries}`);
       browser = await this.#getBrowser();
       page = await browser.newPage();
       page.setUserAgent(this.userAgent);
@@ -330,7 +332,7 @@ class AbstractHandler {
       if (devices.length === 0) {
         devices.push('desktop');
       }
-      this.#log('info', `Scraping URL: ${url} for devices: ${devices.join(', ')}`);
+      this.log('info', `Scraping URL: ${url} for devices: ${devices.join(', ')}`);
 
       const screenshots = [];
 
@@ -384,7 +386,7 @@ class AbstractHandler {
         }
       }
 
-      const pageInjectCode = this.#getPageInjectCode();
+      const pageInjectCode = this.getPageInjectCode();
       if (hasText(pageInjectCode)) {
         await page.evaluate(pageInjectCode);
       }
@@ -402,7 +404,7 @@ class AbstractHandler {
 
       await this.#closeAllPages();
 
-      this.#log('info', `Time taken for scraping: ${scrapeTime}ms`);
+      this.log('info', `Time taken for scraping: ${scrapeTime}ms`);
 
       return {
         finalUrl: page.url(),
@@ -417,21 +419,21 @@ class AbstractHandler {
       await this.#closeAllPages();
 
       if (e instanceof RedirectError) {
-        this.#log('info', `Caught redirect: ${e.message}`);
+        this.log('info', `Caught redirect: ${e.message}`);
         throw e; // Re-throw the specific redirect error, we do not want to retry
       }
       if (e instanceof PuppeteerError) {
-        this.#log('error', `Puppeteer error: ${e.message}`, e);
+        this.log('error', `Puppeteer error: ${e.message}`, e);
         throw e;
       }
       if (e.message?.startsWith('net::')) {
-        this.#log('error', `Network error: ${e.message}`, e);
+        this.log('error', `Network error: ${e.message}`, e);
         throw e;
       }
       if (retries >= maxRetries) {
         throw e;
       }
-      this.#log('error', `Error scraping URL, retrying... ${e.message}`, e);
+      this.log('error', `Error scraping URL, retrying... ${e.message}`, e);
 
       await this.#closeBrowser(browser);
 
@@ -506,7 +508,7 @@ class AbstractHandler {
   // eslint-disable-next-line no-unused-vars
   async #store(content, screenshots, options) {
     if (this.config.skipStorage) {
-      this.#log('info', 'Skipping storage by config');
+      this.log('info', 'Skipping storage by config');
       return null;
     }
 
@@ -517,7 +519,7 @@ class AbstractHandler {
       const {
         folder = '', fileName, binary, contentType,
       } = screenshot;
-      this.#log('info', `Storing screenshot ${fileName} in folder ${folder}`);
+      this.log('info', `Storing screenshot ${fileName} in folder ${folder}`);
       const prefix = hasText(storagePrefix) ? `${storagePrefix}/${folder}` : folder;
       const storagePath = await this.getStoragePath(fileName, prefix);
       commands.push(new PutObjectCommand({
@@ -540,7 +542,7 @@ class AbstractHandler {
 
     const responses = await Promise.all(commands.map((command) => this.s3Client.send(command)));
     const lastResponse = responses[responses.length - 1];
-    this.#log('info', `Successfully uploaded to ${filePath}. Response: ${JSON.stringify(lastResponse)}`);
+    this.log('info', `Successfully uploaded to ${filePath}. Response: ${JSON.stringify(lastResponse)}`);
 
     return filePath;
   }
@@ -559,11 +561,11 @@ class AbstractHandler {
     try {
       const { stdout, stderr } = await this.execPromise('df -P -H /tmp');
       if (stderr) {
-        this.#log('error', `Error getting disk usage: ${stderr}`);
+        this.log('error', `Error getting disk usage: ${stderr}`);
       }
-      this.#log('info', `Disk usage size (tmp): ${stdout}`);
+      this.log('info', `Disk usage size (tmp): ${stdout}`);
     } catch (e) {
-      this.#log('error', `Error getting disk usage: ${e.message}`, e);
+      this.log('error', `Error getting disk usage: ${e.message}`, e);
     }
   }
 
@@ -573,7 +575,7 @@ class AbstractHandler {
    * @param {Array} urlsData - The array of URL data to process.
    */
   async onProcessingStart(urlsData) {
-    this.#log('info', `Processing ${urlsData.length} URLs`);
+    this.log('info', `Processing ${urlsData.length} URLs`);
     await sendSlackMessage(this.slackClient, this.config.slackContext, `Starting scrape of ${urlsData.length} URLs [${this.getName()}]`);
   }
 
@@ -583,10 +585,10 @@ class AbstractHandler {
    * @param {Array} results - The results of the processing.
    */
   async onProcessingComplete(results) {
-    this.#log('info', `[${this.getName()}] Scrape complete. Scraped ${results.length} URLs. Failed to scrape ${results.filter((result) => result.error).length} URLs.`);
+    this.log('info', `[${this.getName()}] Scrape complete. Scraped ${results.length} URLs. Failed to scrape ${results.filter((result) => result.error).length} URLs.`);
 
     if (this.config.skipMessage) {
-      this.#log('info', 'Skipping completion message by config');
+      this.log('info', 'Skipping completion message by config');
       return;
     }
 
@@ -673,13 +675,13 @@ class AbstractHandler {
         // eslint-disable-next-line no-await-in-loop
         const result = await this.processUrl(urlData, customHeaders, options);
         results.push(result);
-        this.#log(
+        this.log(
           'info',
           `Processed URL ${index + 1}/${urlsData.length}: ${urlData.url}`,
         );
         // eslint-disable-next-line no-await-in-loop
         await this.getDiskUsage();
-        this.#log('info', `Processed ${results.length} URLs...`);
+        this.log('info', `Processed ${results.length} URLs...`);
 
         // Only wait if we have another URL to process
         if (hasAnotherUrlToProcess(index)) {
@@ -704,7 +706,7 @@ class AbstractHandler {
     const { url } = urlData;
 
     if (!isValidUrl(url)) {
-      this.#log('error', `Invalid URL: ${url}`);
+      this.log('error', `Invalid URL: ${url}`);
       return { error: `Invalid URL: ${url}` };
     }
 
@@ -721,7 +723,7 @@ class AbstractHandler {
 
       return result;
     } catch (e) {
-      this.#log('error', `Failed to scrape URL: ${e.message}`, e);
+      this.log('error', `Failed to scrape URL: ${e.message}`, e);
       return {
         url, urlId: urlData.urlId, jobMetadata, error: e,
       };

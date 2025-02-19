@@ -23,12 +23,12 @@ import RedirectError from '../support/redirect-error.js';
 /**
  * Handler for import as a service URLs.
  */
-
 const DOCX_STYLES_XML_PATH = './static/resources/import/styles.xml';
-const s3KeyPrefix = 'imports';
 
 class ImportHandler extends AbstractHandler {
   static handlerName = 'import';
+
+  s3KeyPrefix = 'imports';
 
   constructor(config, services) {
     super(
@@ -41,6 +41,11 @@ class ImportHandler extends AbstractHandler {
     this.urlId = config.urlId;
   }
 
+  /**
+   * Return the contents of the file being requested from the S3 bucket.
+   * @param stream {ReadableStream} The stream to read
+   * @return {Promise<*>} The contents of the asset
+   */
   static async #readStreamContents(stream) {
     return new Promise((resolve, reject) => {
       const chunks = [];
@@ -51,32 +56,40 @@ class ImportHandler extends AbstractHandler {
   }
 
   /**
+   * Return the contents of the file being requested from the S3 bucket.
+   * @param assetName {string} The name of the asset to retrieve
+   * @return {Promise<*|null>} The contents of the asset, or null if the asset does not exist.
+   */
+  async getS3JobAsset(assetName) {
+    try {
+      // Check for import.js in the S3 bucket
+      const command = new GetObjectCommand({
+        Bucket: this.config.s3BucketName,
+        Key: `${this.s3KeyPrefix}/${this.config.jobId}/${assetName}`,
+      });
+      const response = await this.s3Client.send(command);
+
+      // The response.Body is a ReadableStream
+      return ImportHandler.#readStreamContents(response.Body);
+    } catch (error) {
+      if (error.name === 'NoSuchKey') {
+        // No custom import.js file found - no-op
+        this.log('info', `There is no import.js file in bucket: ${this.config.s3BucketName}`);
+        return null;
+      } else {
+        this.log('error', `Error retrieving import.js from bucket: ${this.config.s3BucketName}`, error);
+        throw error;
+      }
+    }
+  }
+
+  /**
    * In the import case, we first check the S3 bucket for the presence of a client-provided
    * import.js file. If it exists, stream the contents of the file into a string and return it.
    * @returns {Promise<string|null>} Either the string contents of the file, or null.
    */
   async getCustomInjectCode() {
-    try {
-      // Check for import.js in the S3 bucket
-      const command = new GetObjectCommand({
-        Bucket: this.config.s3BucketName,
-        Key: `${s3KeyPrefix}/${this.config.jobId}/import.js`,
-      });
-      const response = await this.s3Client.send(command);
-
-      // The response.Body is a ReadableStream
-      const importJsFileStream = response.Body;
-      return ImportHandler.#readStreamContents(importJsFileStream);
-    } catch (error) {
-      if (error.name === 'NoSuchKey') {
-        // No custom import.js file found - no-op
-        this.log.info(`There is no import.js file in bucket: ${this.config.s3BucketName}`);
-        return null;
-      } else {
-        this.log.error(`Error retrieving import.js from bucket: ${this.config.s3BucketName}`, error);
-        throw error;
-      }
-    }
+    return this.getS3JobAsset('import.js');
   }
 
   // force convert all images to png
@@ -96,8 +109,13 @@ class ImportHandler extends AbstractHandler {
     }
   }
 
+  // eslint-disable-next-line class-methods-use-this
+  getScriptPath() {
+    return path.resolve('./static/evaluate/import.js');
+  }
+
   async getStoragePath() {
-    return path.join(`${s3KeyPrefix}/${this.config.jobId}/docx`, `${this.importPath}.docx`);
+    return path.join(`${this.s3KeyPrefix}/${this.config.jobId}/docx`, `${this.importPath}.docx`);
   }
 
   /**
@@ -130,13 +148,11 @@ class ImportHandler extends AbstractHandler {
     const stylesXML = fs.readFileSync(path.resolve(DOCX_STYLES_XML_PATH), 'utf-8');
 
     // convert markdown to docx
-    const docx = await md2docx(md, {
+    return md2docx(md, {
       stylesXML,
       image2png: this.#image2png,
       log: this.services.log,
     });
-
-    return docx;
   }
 
   // eslint-disable-next-line class-methods-use-this

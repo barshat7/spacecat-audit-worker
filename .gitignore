@@ -141,3 +141,5 @@ junit
 aws
 
 tmp/
+
+.nvmrc
