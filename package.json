@@ -115,7 +115,7 @@
   },
   "dependencies": {
     "@adobe/helix-md2docx": "2.1.107",
-    "@adobe/helix-md2jcr": "1.0.13",
+    "@adobe/helix-md2jcr": "1.0.14",
     "@adobe/helix-shared-body-data": "2.1.9",
     "@adobe/helix-shared-secrets": "2.2.10",
     "@adobe/helix-shared-wrap": "2.0.2",
@@ -123,7 +123,7 @@
     "@adobe/helix-universal-logger": "3.0.23",
     "@adobe/spacecat-shared-http-utils": "1.9.8",
     "@adobe/spacecat-shared-slack-client": "1.5.6",
-    "@adobe/spacecat-shared-utils": "1.32.0",
+    "@adobe/spacecat-shared-utils": "1.33.0",
     "@aws-sdk/client-s3": "3.749.0",
     "aws-xray-sdk": "3.10.3",
     "typescript": "5.7.3",
