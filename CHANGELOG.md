@@ -1,3 +1,10 @@
+## [1.21.1](https://github.com/adobe/spacecat-content-scraper/compare/v1.21.0...v1.21.1) (2025-02-21)
+
+
+### Bug Fixes
+
+* add custom spacecat user-agent ([#286](https://github.com/adobe/spacecat-content-scraper/issues/286)) ([2fa93cf](https://github.com/adobe/spacecat-content-scraper/commit/2fa93cfc52289b48b153eacf8aff9ef43ff9b27a))
+
 # [1.21.0](https://github.com/adobe/spacecat-content-scraper/compare/v1.20.7...v1.21.0) (2025-02-19)
 
 
