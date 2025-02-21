@@ -46,7 +46,7 @@ puppeteer.use(AdblockerPlugin({ blockTrackers: true }));
 
 chromium.setGraphicsMode = false;
 
-const DEFAULT_USER_AGENT = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36';
+const DEFAULT_USER_AGENT = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36 Spacecat/1.0';
 
 /**
  * AbstractHandler class that serves as the base class for all specific handlers.
@@ -307,7 +307,7 @@ class AbstractHandler {
       this.log('info', `Scraping URL: ${url} with retries: ${retries}`);
       browser = await this.#getBrowser();
       page = await browser.newPage();
-      page.setUserAgent(this.userAgent);
+      await page.setUserAgent(this.userAgent);
       const startScrape = Date.now();
       const enableJavascript = isBoolean(options.enableJavascript)
         ? options.enableJavascript
@@ -351,10 +351,8 @@ class AbstractHandler {
         const knownDevice = KnownDevices[device];
 
         // Set user agent
-        const userAgent = device !== 'desktop' ? knownDevice.userAgent : false;
-        if (userAgent) {
-          await page.setUserAgent(userAgent);
-        }
+        const userAgent = device !== 'desktop' ? knownDevice.userAgent : this.userAgent;
+        await page.setUserAgent(userAgent);
 
         // Set viewport
         const viewport = device === 'desktop' ? chromium.defaultViewport : knownDevice.viewport;

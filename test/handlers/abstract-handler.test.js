@@ -507,7 +507,7 @@ describe('AbstractHandler', () => {
       await testHandler.process([{ url: 'https://example.com' }], undefined, options);
 
       // once for default user agent, once for screenshot
-      expect(mockPage.setUserAgent).to.have.been.calledTwice;
+      expect(mockPage.setUserAgent).to.have.been.calledThrice;
       expect(mockPage.setUserAgent.secondCall.calledWith(KnownDevices['iPhone 6'].userAgent)).to.be.true;
       expect(mockPage.setViewport.firstCall
         .calledWithExactly({ ...KnownDevices['iPhone 6'].viewport, deviceScaleFactor: 1 }))
