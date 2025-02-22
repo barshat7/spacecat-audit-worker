@@ -1,3 +1,10 @@
+# [1.22.0](https://github.com/adobe/spacecat-content-scraper/compare/v1.21.2...v1.22.0) (2025-02-22)
+
+
+### Features
+
+* adding audit context in response completion message ([#288](https://github.com/adobe/spacecat-content-scraper/issues/288)) ([c8af7d7](https://github.com/adobe/spacecat-content-scraper/commit/c8af7d741ea1393ccde1e4aa4ee244e17f075f19))
+
 ## [1.21.2](https://github.com/adobe/spacecat-content-scraper/compare/v1.21.1...v1.21.2) (2025-02-21)
 
 
