@@ -26,12 +26,35 @@ class FormHandler extends AbstractHandler {
       config,
       services,
     );
+    this.services.log.info(`Form handler initialized with config: ${JSON.stringify(config, null, 2)}`);
   }
 
+  /**
+   * Check if the form processing type is supported.
+   * @param processingType
+   * @returns {boolean}
+   */
   static accepts(processingType) {
     return processingType === FormHandler.handlerName;
   }
 
+  /**
+   * Processes the given URLs with customized screenshot types options for forms
+   * @param {Array} urlsData - The array of URL data to process.
+   * @param {object} urlsData[] - The URL data object.
+   * @param {string} urlsData[].url - The URL to process, required.
+   * @param {string} [urlsData[].urlId] - Optional URL ID.
+   * @param {string} [urlsData[].status] - Optional URL status.
+   * @param {object} [customHeaders] - The custom headers to use for the processing.
+   * @param {object} [options] - The processing options.
+   * @param {boolean} [options.enableJavascript] - Whether to enable JavaScript in the browser,
+   * default is true.
+   * @param {int} [options.pageLoadTimeout] - The page load timeout in milliseconds,
+   * default is 30000.
+   * @param {boolean} [options.screenshotTypes] - Configuration for the screenshot types to take
+   * @returns {Promise<Array>} The results of the processing.
+   * @throws Will throw an error if processing fails.
+   */
   async process(urlsData, customHeaders, options = {}) {
     const defaultOptions = {
       screenshotTypes: [
@@ -43,6 +66,16 @@ class FormHandler extends AbstractHandler {
     };
 
     return super.process(urlsData, customHeaders, defaultOptions);
+  }
+
+  createCompletionMessage(results) {
+    const baseMessage = super.createCompletionMessage(results);
+    const finalMessage = {
+      ...baseMessage,
+      auditContext: this.config.auditContext,
+    };
+    this.services.log.info(`Form handler completion message: ${JSON.stringify(finalMessage, null, 2)}`);
+    return finalMessage;
   }
 }
 

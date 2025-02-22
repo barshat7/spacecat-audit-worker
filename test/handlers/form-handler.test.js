@@ -126,4 +126,158 @@ describe('FormHandler', () => {
       expect(mockServices.log.error.calledOnce).to.be.true;
     });
   });
+
+  describe('createCompletionMessage', () => {
+    it('transforms successful scrape results correctly', async () => {
+      const results = [{
+        urlId: 'test-url-id',
+        finalUrl: 'https://example.com',
+        status: 'COMPLETE',
+        location: 's3://bucket/path',
+        scrapeResult: {
+          path: '/form/path',
+        },
+        jobMetadata: {
+          key: 'value',
+        },
+      }];
+
+      const message = handler.createCompletionMessage(results);
+
+      expect(message).to.deep.equal({
+        jobId: 'test-job-id',
+        processingType: 'form',
+        slackContext: {},
+        auditContext: undefined,
+        scrapeResults: [{
+          location: 's3://bucket/path',
+          metadata: {
+            urlId: 'test-url-id',
+            url: 'https://example.com',
+            status: 'COMPLETE',
+            path: '/form/path',
+            jobMetadata: {
+              key: 'value',
+            },
+          },
+        }],
+      });
+    });
+
+    it('transforms error results correctly', async () => {
+      const results = [{
+        url: 'https://example.com',
+        urlId: 'test-url-id',
+        error: new Error('Processing failed'),
+        jobMetadata: {
+          key: 'value',
+        },
+      }];
+
+      const message = handler.createCompletionMessage(results);
+
+      expect(message).to.deep.equal({
+        jobId: 'test-job-id',
+        processingType: 'form',
+        slackContext: {},
+        auditContext: undefined,
+        scrapeResults: [{
+          metadata: {
+            url: 'https://example.com',
+            urlId: 'test-url-id',
+            reason: 'Processing failed',
+            status: 'FAILED',
+            jobMetadata: {
+              key: 'value',
+            },
+          },
+        }],
+      });
+    });
+
+    it('transforms RedirectError results correctly', async () => {
+      const RedirectError = (await import('../../src/support/redirect-error.js')).default;
+      const results = [{
+        url: 'https://example.com',
+        urlId: 'test-url-id',
+        error: new RedirectError('Redirect detected'),
+        jobMetadata: {
+          key: 'value',
+        },
+      }];
+
+      const message = handler.createCompletionMessage(results);
+
+      expect(message).to.deep.equal({
+        jobId: 'test-job-id',
+        processingType: 'form',
+        slackContext: {},
+        auditContext: undefined,
+        scrapeResults: [{
+          metadata: {
+            url: 'https://example.com',
+            urlId: 'test-url-id',
+            reason: 'Redirect detected',
+            status: 'REDIRECT',
+            jobMetadata: {
+              key: 'value',
+            },
+          },
+        }],
+      });
+    });
+
+    it('handles results with default status when not provided', async () => {
+      const results = [{
+        urlId: 'test-url-id',
+        finalUrl: 'https://example.com',
+        location: 's3://bucket/path',
+        scrapeResult: {
+          path: '/form/path',
+        },
+        jobMetadata: {
+          key: 'value',
+        },
+      }];
+
+      const message = handler.createCompletionMessage(results);
+
+      expect(message.scrapeResults[0].metadata.status).to.equal('COMPLETE');
+    });
+
+    it('handles multiple results with mixed success and errors', async () => {
+      const RedirectError = (await import('../../src/support/redirect-error.js')).default;
+      const results = [
+        {
+          urlId: 'success-id',
+          finalUrl: 'https://example.com/success',
+          status: 'COMPLETE',
+          location: 's3://bucket/path1',
+          scrapeResult: {
+            path: '/form/path1',
+          },
+          jobMetadata: { type: 'success' },
+        },
+        {
+          url: 'https://example.com/error',
+          urlId: 'error-id',
+          error: new Error('Failed processing'),
+          jobMetadata: { type: 'error' },
+        },
+        {
+          url: 'https://example.com/redirect',
+          urlId: 'redirect-id',
+          error: new RedirectError('Redirect found'),
+          jobMetadata: { type: 'redirect' },
+        },
+      ];
+
+      const message = handler.createCompletionMessage(results);
+
+      expect(message.scrapeResults).to.have.length(3);
+      expect(message.scrapeResults[0].metadata.status).to.equal('COMPLETE');
+      expect(message.scrapeResults[1].metadata.status).to.equal('FAILED');
+      expect(message.scrapeResults[2].metadata.status).to.equal('REDIRECT');
+    });
+  });
 });

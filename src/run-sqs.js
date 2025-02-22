@@ -45,6 +45,7 @@ export default async function runSQS(data, context = false) {
     customHeaders,
     slackContext = {},
     urls,
+    auditContext,
   } = data;
 
   try {
@@ -59,6 +60,7 @@ export default async function runSQS(data, context = false) {
       skipStorage,
       slackContext,
       userAgent,
+      auditContext,
     };
     const handler = selectHandler(context, handlers, services, config, processingType);
 

@@ -578,18 +578,11 @@ class AbstractHandler {
   }
 
   /**
-   * Logs the completion of the processing and sends a completion message to SQS and Slack.
-   * @private
-   * @param {Array} results - The results of the processing.
+   * Creates the completion message after the processing.
+   * @param results
+   * @returns {object}
    */
-  async onProcessingComplete(results) {
-    this.log('info', `[${this.getName()}] Scrape complete. Scraped ${results.length} URLs. Failed to scrape ${results.filter((result) => result.error).length} URLs.`);
-
-    if (this.config.skipMessage) {
-      this.log('info', 'Skipping completion message by config');
-      return;
-    }
-
+  createCompletionMessage(results) {
     const completedMessage = {
       jobId: this.config.jobId,
       processingType: this.handlerName,
@@ -632,6 +625,25 @@ class AbstractHandler {
         };
       }),
     };
+
+    return completedMessage;
+  }
+
+  /**
+   * Logs the completion of the processing and sends a completion message to SQS and Slack.
+   * @private
+   * @param {Array} results - The results of the processing.
+   */
+  async onProcessingComplete(results) {
+    this.log('info', `[${this.getName()}] Scrape complete. Scraped ${results.length} URLs. Failed to scrape ${results.filter((result) => result.error).length} URLs.`);
+
+    if (this.config.skipMessage) {
+      this.log('info', 'Skipping completion message by config');
+      return;
+    }
+
+    const completedMessage = await this.createCompletionMessage(results);
+    this.log('info', `Sending completion message to sqs :  ${this.config.completionQueueUrl}`);
 
     await sendSQSMessage(
       this.sqsClient,
