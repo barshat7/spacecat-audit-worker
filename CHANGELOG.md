@@ -1,3 +1,10 @@
+## [1.22.3](https://github.com/adobe/spacecat-content-scraper/compare/v1.22.2...v1.22.3) (2025-02-24)
+
+
+### Bug Fixes
+
+* content scraper and audit worker communication for forms handler ([#289](https://github.com/adobe/spacecat-content-scraper/issues/289)) ([23a9b7c](https://github.com/adobe/spacecat-content-scraper/commit/23a9b7c369978cae3f6e405ea5128dcef2c44d19))
+
 ## [1.22.2](https://github.com/adobe/spacecat-content-scraper/compare/v1.22.1...v1.22.2) (2025-02-23)
 
 
