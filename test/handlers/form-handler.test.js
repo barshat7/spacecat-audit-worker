@@ -127,6 +127,13 @@ describe('FormHandler', () => {
     });
   });
 
+  describe('getScriptPath', () => {
+    it('handles get script path', async () => {
+      const result = await handler.getScriptPath();
+      expect(result).contains('static/evaluate/form.js');
+    });
+  });
+
   describe('createCompletionMessage', () => {
     it('transforms successful scrape results correctly', async () => {
       const results = [{
@@ -148,6 +155,8 @@ describe('FormHandler', () => {
         jobId: 'test-job-id',
         processingType: 'form',
         slackContext: {},
+        siteId: undefined,
+        type: 'forms-opportunities',
         auditContext: undefined,
         scrapeResults: [{
           location: 's3://bucket/path',
@@ -181,6 +190,8 @@ describe('FormHandler', () => {
         processingType: 'form',
         slackContext: {},
         auditContext: undefined,
+        siteId: undefined,
+        type: 'forms-opportunities',
         scrapeResults: [{
           metadata: {
             url: 'https://example.com',
@@ -213,6 +224,8 @@ describe('FormHandler', () => {
         processingType: 'form',
         slackContext: {},
         auditContext: undefined,
+        siteId: undefined,
+        type: 'forms-opportunities',
         scrapeResults: [{
           metadata: {
             url: 'https://example.com',

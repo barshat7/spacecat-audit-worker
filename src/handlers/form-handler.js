@@ -10,6 +10,7 @@
  * governing permissions and limitations under the License.
  */
 
+import path from 'path';
 import AbstractHandler from './abstract-handler.js';
 import { SCREENSHOT_TYPES } from '../support/screenshot.js';
 
@@ -72,10 +73,17 @@ class FormHandler extends AbstractHandler {
     const baseMessage = super.createCompletionMessage(results);
     const finalMessage = {
       ...baseMessage,
+      type: 'forms-opportunities',
+      siteId: this.config.siteId,
       auditContext: this.config.auditContext,
     };
     this.services.log.info(`Form handler completion message: ${JSON.stringify(finalMessage, null, 2)}`);
     return finalMessage;
+  }
+
+  // eslint-disable-next-line class-methods-use-this
+  getScriptPath() {
+    return path.resolve('./static/evaluate/form.js');
   }
 }
 
