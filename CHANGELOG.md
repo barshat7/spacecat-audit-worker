@@ -1,3 +1,10 @@
+## [1.22.10](https://github.com/adobe/spacecat-content-scraper/compare/v1.22.9...v1.22.10) (2025-02-26)
+
+
+### Bug Fixes
+
+* update search-form identification ([#300](https://github.com/adobe/spacecat-content-scraper/issues/300)) ([ca9b78d](https://github.com/adobe/spacecat-content-scraper/commit/ca9b78d114fbb6959c46ca8ebefad5c7c828c97c))
+
 ## [1.22.9](https://github.com/adobe/spacecat-content-scraper/compare/v1.22.8...v1.22.9) (2025-02-26)
 
 
