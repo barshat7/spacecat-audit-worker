@@ -155,7 +155,7 @@ describe('FormHandler', () => {
         jobId: 'test-job-id',
         processingType: 'form',
         slackContext: {},
-        siteId: undefined,
+        siteId: 'test-job-id',
         type: 'forms-opportunities',
         auditContext: undefined,
         scrapeResults: [{
@@ -190,7 +190,7 @@ describe('FormHandler', () => {
         processingType: 'form',
         slackContext: {},
         auditContext: undefined,
-        siteId: undefined,
+        siteId: 'test-job-id',
         type: 'forms-opportunities',
         scrapeResults: [{
           metadata: {
@@ -224,7 +224,7 @@ describe('FormHandler', () => {
         processingType: 'form',
         slackContext: {},
         auditContext: undefined,
-        siteId: undefined,
+        siteId: 'test-job-id',
         type: 'forms-opportunities',
         scrapeResults: [{
           metadata: {

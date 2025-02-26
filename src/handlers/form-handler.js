@@ -74,7 +74,7 @@ class FormHandler extends AbstractHandler {
     const finalMessage = {
       ...baseMessage,
       type: 'forms-opportunities',
-      siteId: this.config.siteId,
+      siteId: this.config.jobId,
       auditContext: this.config.auditContext,
     };
     this.services.log.info(`Form handler completion message: ${JSON.stringify(finalMessage, null, 2)}`);
