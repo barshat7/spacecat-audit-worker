@@ -1,3 +1,10 @@
+## [1.22.9](https://github.com/adobe/spacecat-content-scraper/compare/v1.22.8...v1.22.9) (2025-02-26)
+
+
+### Bug Fixes
+
+* site id handling in form handler ([#293](https://github.com/adobe/spacecat-content-scraper/issues/293)) ([c46ee76](https://github.com/adobe/spacecat-content-scraper/commit/c46ee762ec6607e79c21c54e98230d39be0db1fb))
+
 ## [1.22.8](https://github.com/adobe/spacecat-content-scraper/compare/v1.22.7...v1.22.8) (2025-02-26)
 
 
