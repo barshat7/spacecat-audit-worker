@@ -1,3 +1,10 @@
+## [1.22.7](https://github.com/adobe/spacecat-content-scraper/compare/v1.22.6...v1.22.7) (2025-02-26)
+
+
+### Bug Fixes
+
+* **deps:** update dependency @adobe/helix-md2jcr to v1.1.1 ([#298](https://github.com/adobe/spacecat-content-scraper/issues/298)) ([22a46b1](https://github.com/adobe/spacecat-content-scraper/commit/22a46b181514da693d62884d4d60dee3b6ea1337))
+
 ## [1.22.6](https://github.com/adobe/spacecat-content-scraper/compare/v1.22.5...v1.22.6) (2025-02-25)
 
 
