@@ -18,7 +18,9 @@ const evalFn = () => {
         // if the form has a search role or a search field, it's a search form
         if (el.getAttribute('role') === 'search'
           || el.querySelector('input[type="search"]')
-          || el.querySelectorAll('input').filter((e) => e.getAttribute('role') === 'searchbox').length > 0) return 'search';
+          || el.querySelectorAll('input').filter((e) => e.getAttribute('role') === 'searchbox').length > 0
+          || el.action?.endsWith('search.html')
+        ) return 'search';
         const password = el.querySelectorAll('input[type="password"]');
         // if the form has one password input, it's a login form
         if (password.length === 1) return 'login';
