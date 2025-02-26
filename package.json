@@ -115,7 +115,7 @@
   },
   "dependencies": {
     "@adobe/helix-md2docx": "2.1.107",
-    "@adobe/helix-md2jcr": "1.1.1",
+    "@adobe/helix-md2jcr": "1.1.2",
     "@adobe/helix-shared-body-data": "2.1.9",
     "@adobe/helix-shared-secrets": "2.2.10",
     "@adobe/helix-shared-wrap": "2.0.2",
