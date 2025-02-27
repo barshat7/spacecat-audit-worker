@@ -1,3 +1,10 @@
+## [1.22.11](https://github.com/adobe/spacecat-content-scraper/compare/v1.22.10...v1.22.11) (2025-02-27)
+
+
+### Bug Fixes
+
+* evaluate form script error handling ([#301](https://github.com/adobe/spacecat-content-scraper/issues/301)) ([5af0d95](https://github.com/adobe/spacecat-content-scraper/commit/5af0d95b0fb80a86c9103e361a2ac53535907038))
+
 ## [1.22.10](https://github.com/adobe/spacecat-content-scraper/compare/v1.22.9...v1.22.10) (2025-02-26)
 
 
