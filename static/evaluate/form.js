@@ -18,7 +18,7 @@ const evalFn = () => {
         // if the form has a search role or a search field, it's a search form
         if (el.getAttribute('role') === 'search'
           || el.querySelector('input[type="search"]')
-          || el.querySelectorAll('input').filter((e) => e.getAttribute('role') === 'searchbox').length > 0
+          || Array.from(el.querySelectorAll('input')).filter((e) => e.getAttribute('role') === 'searchbox').length > 0
           || el.action?.endsWith('search.html')
         ) return 'search';
         const password = el.querySelectorAll('input[type="password"]');
