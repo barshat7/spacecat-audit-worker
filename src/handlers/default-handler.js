@@ -49,6 +49,8 @@ class DefaultHandler extends AbstractHandler {
    * default is true.
    * @param {int} [options.pageLoadTimeout] - The page load timeout in milliseconds,
    * default is 30000.
+   * @param {boolean} [options.rejectRedirects] - This option accepts or rejects redirects
+   * default is true
    * @param {boolean} [options.takeScreenshot] - Take a screenshot of the page,
    * default is true.
    * @param {boolean} [options.generateThumbnail] - Generate a thumbnail from the screenshot,
@@ -62,6 +64,7 @@ class DefaultHandler extends AbstractHandler {
         SCREENSHOT_TYPES.FULL_PAGE,
         SCREENSHOT_TYPES.THUMBNAIL,
       ],
+      rejectRedirects: true,
       ...options,
     };
 

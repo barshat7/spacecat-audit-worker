@@ -28,6 +28,7 @@ import sharp from 'sharp';
 import { KnownDevices, TimeoutError } from 'puppeteer-core';
 import AbstractHandler from '../../src/handlers/abstract-handler.js';
 import { SCREENSHOT_TYPES } from '../../src/support/screenshot.js';
+import RedirectError from '../../src/support/redirect-error.js';
 
 use(chaiAsPromised);
 use(sinonChai);
@@ -438,6 +439,7 @@ describe('AbstractHandler', () => {
         pageLoadTimeout: 10,
         enableJavascript: false,
         waitForSelector: 'some-selector',
+        rejectRedirects: true,
       };
 
       await importHandler.process([{ url: 'https://example.com' }], undefined, options);
@@ -457,7 +459,7 @@ describe('AbstractHandler', () => {
       expect(mockPage.setExtraHTTPHeaders.callCount).to.equal(1);
     });
 
-    it('should not throw an error for a redirect', async () => {
+    it('should throw an error for a redirect when rejectRedirects is true', async () => {
       mockPage.goto.resolves({
         url: () => 'https://redirected-url.com',
         request: () => ({
@@ -470,14 +472,16 @@ describe('AbstractHandler', () => {
       });
       createBrowserStub([mockPage]);
 
-      const results = await handler.process([{ url: 'https://example.com', urlId: '1234' }]);
+      const results = await handler.process([{ url: 'https://example.com', urlId: '1234' }], undefined, { rejectRedirects: true });
       expect(results.length).to.equal(1);
-      expect(results[0].error).to.equal(undefined);
+      expect(results[0].error).to.be.instanceOf(RedirectError);
+      expect(results[0].error.message).to.equal('Redirected to https://redirected-url.com from https://example.com');
+
       const sqsMessage = mockServices.sqsClient.sendMessage.firstCall.args[1];
-      expect(mockServices.sqsClient.sendMessage.firstCall.args[1].jobId).to.equal('test-job-id');
+      expect(sqsMessage.jobId).to.equal('test-job-id');
+      expect(sqsMessage.scrapeResults[0].metadata.status).to.equal('REDIRECT');
       expect(sqsMessage.scrapeResults[0].metadata.url).to.equal('https://example.com');
-      expect(sqsMessage.scrapeResults[0].metadata.status).to.equal('COMPLETE');
-      expect(sqsMessage.scrapeResults[0].location).to.equal('scrapes/test-job-id/scrape.json');
+      expect(sqsMessage.scrapeResults[0].metadata.reason).to.equal('Redirected to https://redirected-url.com from https://example.com');
     });
 
     it('returns error if s3 throws an error', async () => {

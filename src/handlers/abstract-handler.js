@@ -289,6 +289,22 @@ class AbstractHandler {
   }
 
   /**
+   * Checks for redirects and throws an error for the same.
+   * @param {string} originalUrl
+   * @param {*} response
+   */
+  // eslint-disable-next-line class-methods-use-this
+  checkForRedirect(originalUrl, response) {
+    const redirectChain = response?.request()?.redirectChain();
+    const isRedirected = redirectChain && redirectChain.length > 0;
+    const isUrlChanged = response?.url() !== originalUrl;
+
+    if (isRedirected && isUrlChanged) {
+      throw new RedirectError(`Redirected to ${response.url()} from ${originalUrl}`);
+    }
+  }
+
+  /**
    * Scrapes the content from the given URL.
    * @private
    * @param {string} url - The URL to scrape.
@@ -315,7 +331,6 @@ class AbstractHandler {
       const pageLoadTimeout = isNumber(options.pageLoadTimeout)
         ? options.pageLoadTimeout
         : 30000;
-
       const { screenshotTypes } = options;
       const devices = [];
       if (isNonEmptyArray(screenshotTypes) && !this.config.skipStorage) {
@@ -343,10 +358,10 @@ class AbstractHandler {
       if (isObject(customHeaders)) {
         await page.setExtraHTTPHeaders(customHeaders);
       }
-
       // Do screenshots for all devices
       /* eslint-disable no-await-in-loop */
       let device;
+      let response;
       for (device of devices) {
         const knownDevice = KnownDevices[device];
 
@@ -363,7 +378,7 @@ class AbstractHandler {
         });
 
         // Wait for page loaded
-        const response = await page.goto(url, {
+        response = await page.goto(url, {
           waitUntil: 'networkidle2',
           timeout: pageLoadTimeout,
         });
@@ -382,6 +397,10 @@ class AbstractHandler {
             options,
           ));
         }
+      }
+
+      if (options?.rejectRedirects === true) {
+        this.checkForRedirect(url, response);
       }
 
       const pageInjectCode = this.getPageInjectCode();
