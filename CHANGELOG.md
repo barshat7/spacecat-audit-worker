@@ -1,3 +1,10 @@
+# [1.23.0](https://github.com/adobe/spacecat-content-scraper/compare/v1.22.11...v1.23.0) (2025-02-27)
+
+
+### Features
+
+* sites-29380 remove redirects for scrape ([#297](https://github.com/adobe/spacecat-content-scraper/issues/297)) ([e12a628](https://github.com/adobe/spacecat-content-scraper/commit/e12a628f5d785a85ccda96f8915cb3b7ec5d5190))
+
 ## [1.22.11](https://github.com/adobe/spacecat-content-scraper/compare/v1.22.10...v1.22.11) (2025-02-27)
 
 
