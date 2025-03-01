@@ -1,3 +1,10 @@
+## [1.23.1](https://github.com/adobe/spacecat-content-scraper/compare/v1.23.0...v1.23.1) (2025-03-01)
+
+
+### Bug Fixes
+
+* **deps:** update external fixes ([#305](https://github.com/adobe/spacecat-content-scraper/issues/305)) ([3ce4602](https://github.com/adobe/spacecat-content-scraper/commit/3ce4602a814c11520d45d68dbba895181d935d10))
+
 # [1.23.0](https://github.com/adobe/spacecat-content-scraper/compare/v1.22.11...v1.23.0) (2025-02-27)
 
 
