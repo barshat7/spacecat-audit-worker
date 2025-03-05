@@ -1,3 +1,10 @@
+## [1.23.6](https://github.com/adobe/spacecat-content-scraper/compare/v1.23.5...v1.23.6) (2025-03-05)
+
+
+### Bug Fixes
+
+* **sites-29756:** content scraper is not using custom headers ([#311](https://github.com/adobe/spacecat-content-scraper/issues/311)) ([e362968](https://github.com/adobe/spacecat-content-scraper/commit/e3629688baa03d8ecc5ad327b20f12dcbdb1bc07))
+
 ## [1.23.5](https://github.com/adobe/spacecat-content-scraper/compare/v1.23.4...v1.23.5) (2025-03-05)
 
 
