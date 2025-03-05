@@ -1,3 +1,10 @@
+## [1.23.5](https://github.com/adobe/spacecat-content-scraper/compare/v1.23.4...v1.23.5) (2025-03-05)
+
+
+### Bug Fixes
+
+* **deps:** update dependency @adobe/spacecat-shared-slack-client to v1.5.8 ([#310](https://github.com/adobe/spacecat-content-scraper/issues/310)) ([e3da8e9](https://github.com/adobe/spacecat-content-scraper/commit/e3da8e9ceb32add8e1daf2969f2e803f2c8308c9))
+
 ## [1.23.4](https://github.com/adobe/spacecat-content-scraper/compare/v1.23.3...v1.23.4) (2025-03-04)
 
 
