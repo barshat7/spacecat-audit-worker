@@ -122,7 +122,7 @@
     "@adobe/helix-status": "10.1.5",
     "@adobe/helix-universal-logger": "3.0.24",
     "@adobe/spacecat-shared-http-utils": "1.9.12",
-    "@adobe/spacecat-shared-slack-client": "1.5.7",
+    "@adobe/spacecat-shared-slack-client": "1.5.8",
     "@adobe/spacecat-shared-utils": "1.33.3",
     "@aws-sdk/client-s3": "3.758.0",
     "aws-xray-sdk": "3.10.3",
