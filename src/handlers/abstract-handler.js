@@ -11,7 +11,7 @@
  */
 
 import {
-  hasText, isBoolean, isNumber, isObject, isValidUrl, isNonEmptyArray,
+  hasText, isBoolean, isNumber, isObject, isValidUrl, isNonEmptyArray, isNonEmptyObject,
 } from '@adobe/spacecat-shared-utils';
 import { PutObjectCommand } from '@aws-sdk/client-s3';
 
@@ -46,7 +46,7 @@ puppeteer.use(AdblockerPlugin({ blockTrackers: true }));
 
 chromium.setGraphicsMode = false;
 
-const DEFAULT_USER_AGENT = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36 Spacecat/1.0';
+export const DEFAULT_USER_AGENT = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36 Spacecat/1.0';
 
 /**
  * AbstractHandler class that serves as the base class for all specific handlers.
@@ -355,7 +355,17 @@ class AbstractHandler {
         await page.setJavaScriptEnabled(false);
       }
 
-      if (isObject(customHeaders)) {
+      if (isNonEmptyObject(customHeaders)) {
+        this.log('debug', `Setting custom headers: ${JSON.stringify(customHeaders, null, 2)}`);
+
+        // lower case all header keys then check for user agent
+        const userAgent = Object.keys(customHeaders).find((key) => key.toLowerCase() === 'user-agent');
+
+        // if the user has specifically set a user agent, use that
+        if (hasText(userAgent)) {
+          this.userAgent = customHeaders[userAgent];
+        }
+
         await page.setExtraHTTPHeaders(customHeaders);
       }
       // Do screenshots for all devices

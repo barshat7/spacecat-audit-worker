@@ -26,7 +26,7 @@ import fs from 'fs';
 import { describe } from 'mocha';
 import sharp from 'sharp';
 import { KnownDevices, TimeoutError } from 'puppeteer-core';
-import AbstractHandler from '../../src/handlers/abstract-handler.js';
+import AbstractHandler, { DEFAULT_USER_AGENT } from '../../src/handlers/abstract-handler.js';
 import { SCREENSHOT_TYPES } from '../../src/support/screenshot.js';
 import RedirectError from '../../src/support/redirect-error.js';
 
@@ -332,6 +332,58 @@ describe('AbstractHandler', () => {
       expect(results[0].scrapeResult).to.deep.equal({ data: 'scraped data' });
       expect(pageStub.setJavaScriptEnabled.callCount).to.equal(0);
       expect(pageStub.goto.calledWith('https://example.com', { waitUntil: 'networkidle2', timeout: 30000 })).to.be.true;
+    });
+
+    it('verify scrape result with custom headers uppercase', async () => {
+      const pageStub = createPageStub({ data: 'scraped data' });
+      createBrowserStub([pageStub]);
+
+      const results = await handler.process([{ url: 'https://example.com' }], { 'User-Agent': 'Custom User Agent' });
+
+      expect(results.length).to.equal(1);
+      expect(results[0]).to.have.property('scrapeResult');
+      expect(results[0].scrapeResult).to.deep.equal({ data: 'scraped data' });
+      expect(pageStub.setExtraHTTPHeaders.calledWith({ 'User-Agent': 'Custom User Agent' })).to.be.true;
+      expect(pageStub.setUserAgent.calledWith('Custom User Agent')).to.be.true;
+    });
+
+    it('verify scrape result with custom headers lowercase', async () => {
+      const pageStub = createPageStub({ data: 'scraped data' });
+      createBrowserStub([pageStub]);
+
+      const results = await handler.process([{ url: 'https://example.com' }], { 'user-agent': 'Custom User Agent' });
+
+      expect(results.length).to.equal(1);
+      expect(results[0]).to.have.property('scrapeResult');
+      expect(results[0].scrapeResult).to.deep.equal({ data: 'scraped data' });
+      expect(pageStub.setExtraHTTPHeaders.calledWith({ 'user-agent': 'Custom User Agent' })).to.be.true;
+      expect(pageStub.setUserAgent.calledWith('Custom User Agent')).to.be.true;
+    });
+
+    it('verify that extra headers are not with empty headers', async () => {
+      const pageStub = createPageStub({ data: 'scraped data' });
+      createBrowserStub([pageStub]);
+
+      const results = await handler.process([{ url: 'https://example.com' }], { });
+
+      expect(results.length).to.equal(1);
+      expect(results[0]).to.have.property('scrapeResult');
+      expect(results[0].scrapeResult).to.deep.equal({ data: 'scraped data' });
+      expect(pageStub.setExtraHTTPHeaders.called).to.be.false;
+      expect(pageStub.setUserAgent.calledWith(DEFAULT_USER_AGENT)).to.be.true;
+    });
+
+    it('verify that extra headers are set with default user agent', async () => {
+      const pageStub = createPageStub({ data: 'scraped data' });
+      createBrowserStub([pageStub]);
+
+      const results = await handler.process([{ url: 'https://example.com' }], { authorization: 'Bearer 123' });
+
+      expect(results.length).to.equal(1);
+      expect(results[0]).to.have.property('scrapeResult');
+      expect(results[0].scrapeResult).to.deep.equal({ data: 'scraped data' });
+      expect(pageStub.setExtraHTTPHeaders.called).to.be.true;
+      expect(pageStub.setUserAgent.calledWith(DEFAULT_USER_AGENT)).to.be.true;
     });
 
     it('loads evaluate file specific to handler', async () => {
