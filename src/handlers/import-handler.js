@@ -152,6 +152,7 @@ class ImportHandler extends AbstractHandler {
       stylesXML,
       image2png: this.#image2png,
       log: this.services.log,
+      customHeaders: this.customHeaders,
     });
   }
 

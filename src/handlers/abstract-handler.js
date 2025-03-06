@@ -98,6 +98,7 @@ class AbstractHandler {
     this.browser = null;
     this.importPath = null;
     this.userAgent = config.userAgent || DEFAULT_USER_AGENT;
+    this.customHeaders = null;
   }
 
   /**
@@ -701,6 +702,7 @@ class AbstractHandler {
    * @throws Will throw an error if processing fails.
    */
   async process(urlsData, customHeaders, options = {}) {
+    this.customHeaders = customHeaders;
     await this.onProcessingStart(urlsData);
     const results = [];
     const totalUrls = urlsData.length;
