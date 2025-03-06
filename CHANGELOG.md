@@ -1,3 +1,10 @@
+## [1.23.9](https://github.com/adobe/spacecat-content-scraper/compare/v1.23.8...v1.23.9) (2025-03-06)
+
+
+### Bug Fixes
+
+* **SITES-29791:** send custom headers to md2docx ([#313](https://github.com/adobe/spacecat-content-scraper/issues/313)) ([c80c97b](https://github.com/adobe/spacecat-content-scraper/commit/c80c97baeb009d560937f527415a336ef0135fd1))
+
 ## [1.23.8](https://github.com/adobe/spacecat-content-scraper/compare/v1.23.7...v1.23.8) (2025-03-06)
 
 
