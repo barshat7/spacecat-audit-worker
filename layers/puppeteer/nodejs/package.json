@@ -9,7 +9,7 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "puppeteer-core": "23.11.1",
+    "puppeteer-core": "24.1.0",
     "puppeteer-extra": "3.3.6",
     "puppeteer-extra-plugin-stealth": "2.11.2",
     "puppeteer-extra-plugin-adblocker": "2.13.6"
