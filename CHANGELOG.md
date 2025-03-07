@@ -1,3 +1,10 @@
+## [1.23.11](https://github.com/adobe/spacecat-content-scraper/compare/v1.23.10...v1.23.11) (2025-03-07)
+
+
+### Bug Fixes
+
+* **deps:** update dependency puppeteer-core to v24 ([#248](https://github.com/adobe/spacecat-content-scraper/issues/248)) ([9b92079](https://github.com/adobe/spacecat-content-scraper/commit/9b92079cd961086d47e02dcb29af6e6e374c04aa))
+
 ## [1.23.10](https://github.com/adobe/spacecat-content-scraper/compare/v1.23.9...v1.23.10) (2025-03-06)
 
 
