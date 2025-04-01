@@ -13,14 +13,29 @@ const evalFn = () => {
         )
     };
 
+    const isSearchForm = function (el) {
+
+        function hasSearchButton(el) {
+            const submitButton = el.querySelector("button[type='submit']");
+            if (!submitButton || !submitButton.innerText) {
+              return false;
+            }
+            const buttonText = submitButton.innerText.toLowerCase();
+            return buttonText === 'search' || buttonText === 'filter';
+        }
+
+        return el.getAttribute('role') === 'search'
+            || el.querySelector('input[type="search"]')
+            || Array.from(el.querySelectorAll('input')).filter((e) => e.getAttribute('role') === 'searchbox').length > 0
+            || el.action?.endsWith('search.html')
+            || hasSearchButton(el)
+            || ['filter', 'filters'].some(className => el.classList.contains(className))
+    }
+
     const getFormType = function (el) {
         if (!el || el.tagName !== 'FORM') return undefined;
         // if the form has a search role or a search field, it's a search form
-        if (el.getAttribute('role') === 'search'
-          || el.querySelector('input[type="search"]')
-          || Array.from(el.querySelectorAll('input')).filter((e) => e.getAttribute('role') === 'searchbox').length > 0
-          || el.action?.endsWith('search.html')
-        ) return 'search';
+        if (isSearchForm(el)) return 'search';
         const password = el.querySelectorAll('input[type="password"]');
         // if the form has one password input, it's a login form
         if (password.length === 1) return 'login';
