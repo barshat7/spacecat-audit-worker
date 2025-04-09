@@ -36,7 +36,7 @@ async function getPresignedUrl(fileName, context, url, site) {
   });
 
   return getSignedUrl(s3ClientObj, command, { expiresIn: EXPIRY_IN_SECONDS })
-  // eslint-disable-next-line no-shadow
+    // eslint-disable-next-line no-shadow
     .then((signedUrl) => signedUrl)
     .catch((error) => {
       log.error(`Error generating presigned URL for ${screenshotPath}:`, error);
@@ -46,15 +46,19 @@ async function getPresignedUrl(fileName, context, url, site) {
 
 async function convertToOpportunityData(opportunityName, urlObject, context) {
   const {
-    url, pageViews, formViews, formSubmit, CTA,
+    url, pageViews, formViews, formSubmit, CTA, trafficacquisition,
   } = urlObject;
 
   const {
     site,
   } = context;
 
-  let conversionRate = formSubmit / formViews;
+  let conversionRate = formSubmit.total / formViews.total;
   conversionRate = Number.isNaN(conversionRate) ? null : conversionRate;
+  let conversionRateMobile = formSubmit.mobile / formViews.mobile;
+  conversionRateMobile = Number.isNaN(conversionRateMobile) ? null : conversionRateMobile;
+  let conversionRateDesktop = formSubmit.desktop / formViews.desktop;
+  conversionRateDesktop = Number.isNaN(conversionRateDesktop) ? null : conversionRateDesktop;
   const signedScreenshot = await getPresignedUrl('screenshot-desktop-fullpage.png', context, url, site);
 
   const opportunity = {
@@ -62,16 +66,38 @@ async function convertToOpportunityData(opportunityName, urlObject, context) {
     screenshot: signedScreenshot,
     trackedFormKPIName: 'Conversion Rate',
     trackedFormKPIValue: conversionRate,
-    formViews,
-    pageViews,
-    samples: pageViews, // todo: get the actual number of samples
+    formViews: formViews.total,
+    pageViews: pageViews.total,
+    samples: pageViews.total, // todo: get the actual number of samples
     metrics: [{
       type: 'conversionRate',
       device: '*',
       value: {
         page: conversionRate,
       },
-    }],
+    },
+    {
+      type: 'conversionRate',
+      device: 'mobile',
+      value: {
+        page: conversionRateMobile,
+      },
+    },
+    {
+      type: 'conversionRate',
+      device: 'desktop',
+      value: {
+        page: conversionRateDesktop,
+      },
+    },
+    {
+      type: 'traffic',
+      device: '*',
+      value: {
+        ...trafficacquisition,
+      },
+    },
+    ],
     ...(opportunityName === 'high-page-views-low-form-nav' && { formNavigation: CTA }),
   };
   return opportunity;
